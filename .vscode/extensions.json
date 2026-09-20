@@ -1,3 +1,19 @@
 {
-  "recommendations": ["Vue.volar"]
+  // 告诉 VS Code：打开这个项目时，推荐安装这几个扩展。
+  // 队友（或换一台电脑的你）打开项目会看到提示，一键装齐，不用手动找。
+  "recommendations": [
+    // Vue 官方语言服务。提供 .vue 文件的语法高亮、模板类型检查、跳转、补全。
+    // 注意：不要同时装 Vetur，两者冲突
+    "Vue.volar",
+
+    // ESLint 官方扩展。负责把 eslint.config.ts 的报错显示在编辑器里，
+    // 以及「保存时自动修复」那一步
+    "dbaeumer.vscode-eslint",
+
+    // Prettier 扩展。负责保存时自动格式化
+    "esbenp.prettier-vscode",
+
+    // EditorConfig 扩展。让 .editorconfig 的规则在 VS Code 里生效
+    "EditorConfig.EditorConfig"
+  ]
 }

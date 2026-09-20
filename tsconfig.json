@@ -1,7 +1,17 @@
+// 这是 TS 的「总入口」配置，本身不检查任何文件，只负责把项目拆成两个子项目。
+//
+// 为什么要拆成两个？
+// 因为项目里其实有两类代码，运行环境完全不同：
+//   1. tsconfig.app.json  —— 跑在浏览器里的应用代码（src/ 下的 Vue 组件和 TS 文件）
+//   2. tsconfig.node.json —— 跑在 Node 里的构建脚本（vite.config.ts、eslint.config.ts）
+//
+// 两者的 lib、types、module 解析规则都不一样，混在一个配置里会互相污染
+// （典型症状：src 里莫名奇妙能用到 process、path 这些 Node API）。
 {
+  // "files": [] 表示这个配置自己不包含任何文件，纯做引用入口
   "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  // 声明引用哪两个子项目。
+  // 执行 vue-tsc -b（build 模式）时会按引用分别检查这两个项目，
+  // 各自有独立的增量缓存，所以第二次检查很快
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
 }

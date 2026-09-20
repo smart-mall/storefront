@@ -1,0 +1,20 @@
+# .prettierignore —— 告诉 Prettier 别碰哪些文件
+#
+# 注意：这是给 Prettier 看的，和 .gitignore（给 git 看）是两回事。
+# 有些文件既要交给 git（比如 package-lock.json），又不能被 Prettier 重排。
+
+# 依赖和构建产物：本来就是生成的，格式化它们毫无意义，纯浪费时间
+node_modules
+dist
+dist-ssr
+coverage
+
+# 锁文件：千万不要格式化！
+# 它们动辄几千行，Prettier 重排一次会产生一份巨大的、毫无意义的 diff，
+# 而且可能破坏 npm 用于校验完整性的哈希
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# 本机私有配置（Vite 约定以 .local 结尾的文件不进仓库）
+*.local

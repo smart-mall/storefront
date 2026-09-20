@@ -1,0 +1,17 @@
+# husky 的 pre-commit 钩子 —— git commit 之前自动执行
+#
+# 这个文件由 husky 负责调用（它在 git 里把 core.hooksPath 指到了 .husky/_）。
+# 文件名必须是 git 认识的那些：pre-commit / commit-msg / pre-push 等，
+# 改名字就不会被触发了。
+#
+# lint-staged 只处理「本次 git add 过的文件」，不是全量检查整个项目，
+# 所以哪怕项目很大，提交也很快（通常 1~3 秒）。
+#
+# 它按 package.json 里的 "lint-staged" 字段分流：
+#   - ts / mts / tsx / vue  -> 先 eslint --fix，再 prettier --write
+#   - json / md / css / html -> 只跑 prettier --write
+# 修完的结果会被自动重新 git add 进本次提交，不需要你手动再 add 一次。
+#
+# 如果某次确实要跳过检查（比如赶时间的热修复），用：
+#   git commit --no-verify
+npx lint-staged

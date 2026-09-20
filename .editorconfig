@@ -1,0 +1,47 @@
+# .editorconfig —— 让不同编辑器用同一套排版规则
+#
+# 它管的是「编辑器的输入行为」（按 Tab 出来什么、保存时做什么），
+# Prettier 管的是「代码最终的排版」。两者互补，不冲突。
+#
+# 起作用的前提是编辑器装了对应插件：
+#   - VS Code: EditorConfig.EditorConfig（已写进 .vscode/extensions.json 推荐）
+#   - IDEA:    内置支持，无需插件
+#
+# root = true 表示「往上不要再找了」，即这个文件是本项目的规则源头
+root = true
+
+[*]
+# 统一编码。不统一的话中文注释在不同机器上会变乱码
+charset = utf-8
+
+# 换行符统一 LF。
+# 和 .gitattributes（eol=lf）、prettier.config.mjs（endOfLine: 'lf'）三处保持一致，
+# 任何一处不一致都会出现「格式化工具和 git 互相改」的死循环
+end_of_line = lf
+
+# 用空格缩进，不用 Tab。
+# 理由：Tab 在不同编辑器里显示宽度不同，代码对齐会乱；空格宽度永远一致
+indent_style = space
+indent_size = 2
+
+# 文件末尾必须有且只有一个换行符。
+# 少了会在 git diff 里显示 "\ No newline at end of file"，
+# 多了会有多余空行
+insert_final_newline = true
+
+# 保存时自动删掉行尾多余的空格
+trim_trailing_whitespace = true
+
+# 提示编辑器的参考行宽，和 Prettier 的 printWidth 对齐
+max_line_length = 100
+
+# Markdown 是例外：
+#   - 行尾两个空格在 Markdown 里是「强制换行」语法，不能删
+#   - 也不适合限制行长（长段落很常见，硬折行反而难读）
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = off
+
+# YAML 对缩进敏感，固定 2 空格，避免不同编辑器用 4 空格导致解析失败
+[*.{yml,yaml}]
+indent_size = 2

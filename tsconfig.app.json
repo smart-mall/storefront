@@ -1,15 +1,60 @@
+// 应用侧 TS 配置：负责 src/ 下跑在浏览器里的代码
 {
+  // 继承 Vue 官方基础配置。strict: true、verbatimModuleSyntax、moduleResolution: bundler、
+  // jsx: preserve、noImplicitThis 等都已经在里面开好了，不用自己重复写
   "extends": "@vue/tsconfig/tsconfig.dom.json",
+
   "compilerOptions": {
+    // 增量编译缓存文件的位置。放进 node_modules 里，
+    // 这样缓存不会被提交到仓库，也不需要额外写 .gitignore
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+
+    // 引入 Vite 的客户端类型，才能用 import.meta.env、import.meta.glob、?raw 导入等
     "types": ["vite/client"],
+
+    // 允许导入非 TS 后缀的文件（如 import './style.css'）而不报错
     "allowArbitraryExtensions": true,
 
-    /* Linting */
+    /* ==================== 路径别名 ==================== */
+
+    // 让 TS 认识 @/xxx 就是 src/xxx，于是可以写：
+    //   import request from '@/api/request'
+    // 而不用写 '../../api/request'
+    //
+    // ⚠️ 必须和 vite.config.ts 里的 resolve.alias 保持一致。
+    //    只改一处会出现「TS 检查通过但打包报错」（或反过来）的诡异问题。
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
+    /* ==================== 更严格的检查 ==================== */
+
+    // 声明了但从未使用的局部变量 -> 报错。这是防死代码的第一道防线，也方便清理
     "noUnusedLocals": true,
+
+    // 声明了但从未使用的函数参数 -> 报错。
+    // 确实不需要的参数请以 _ 开头（如 (_e, index)），TS 会放行
     "noUnusedParameters": true,
+
+    // 只允许「可擦除」的 TS 语法：禁止 enum、namespace、参数属性这些
+    // 会生成额外运行时代码的写法。
+    // 好处有两个：一是编译更快；二是和 Vite 用的 esbuild 转译行为完全一致
+    // （esbuild 不支持那些语法，不开这个开关就会出现「TS 能过、Vite 报错」）
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+
+    // switch 的某个 case 没写 break / return 而直接穿透到下一个 case -> 报错。
+    // 故意穿透是极少见的写法，绝大多数情况是漏写
+    "noFallthroughCasesInSwitch": true,
+
+    // 重写父类方法时必须显式写 override 关键字。
+    // 防止父类改了方法名后，子类那个「以为在重写」的方法静默变成新方法
+    "noImplicitOverride": true,
+
+    // 函数的所有代码路径都必须有返回值。
+    // 防止某个 if 分支忘了 return，函数悄悄返回 undefined
+    "noImplicitReturns": true
   },
+
+  // 这个配置负责的文件范围：src 下的 ts / tsx / vue
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
 }

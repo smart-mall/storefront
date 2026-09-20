@@ -1,0 +1,36 @@
+# .gitattributes —— 告诉 git 怎么处理行尾和二进制文件
+#
+# 为什么需要这个文件？
+# Windows 默认会把文本文件的换行转成 CRLF，Linux/Mac 用 LF。
+# 如果不管，会出现两个问题：
+#   1. 每次提交都刷一堆 "LF will be replaced by CRLF" 警告
+#   2. 你在 Windows 上改一行，Linux 的队友拉下来发现整个文件都被改了
+#      （因为行尾全变了），diff 直接爆炸
+#
+# text=auto 让 git 自己判断哪些是文本文件；
+# eol=lf   表示检出到工作区时也用 LF，不做转换。
+# 结果：仓库里和本地都统一 LF，跨平台不再打架。
+
+* text=auto eol=lf
+
+# Windows 脚本必须保留 CRLF，
+# 否则 cmd.exe / PowerShell 解析时可能出错
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件：声明成 binary 后
+#   - git 不会做任何行尾转换（转换会直接损坏文件）
+#   - git 不会尝试把它们当文本做 diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.mp4 binary

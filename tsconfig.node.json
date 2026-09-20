@@ -1,23 +1,52 @@
+// Node 侧 TS 配置：负责跑在 Node 里的构建脚本（vite.config.ts、eslint.config.ts）
+//
+// 和 tsconfig.app.json 分开的原因：这些文件用的是 Node API（process、node:url 等），
+// 而应用代码跑在浏览器里，压根没有这些 API。混在一起要么 src 里能误用 Node API，
+// 要么构建脚本用不了 Node 类型
 {
   "compilerOptions": {
+    // 增量编译缓存，和 app 侧分开存，避免互相覆盖
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+
+    // 编译目标。构建脚本只在本地和 CI 的 Node 里跑，
+    // Node 24 已经很新，用 es2023 完全没问题
     "target": "es2023",
     "lib": ["ES2023"],
+
+    // 引入 Node 的类型定义（process、Buffer、node:url 等）
     "types": ["node"],
+
+    // 跳过 node_modules 里所有 .d.ts 的类型检查。
+    // 能显著加快编译速度，代价是第三方库自身的类型错误查不出来（可以接受）
     "skipLibCheck": true,
 
-    /* Bundler mode */
+    /* ==================== 模块解析 ==================== */
+
+    // 按 Node 的 ESM 规则解析模块（会读 package.json 的 exports 字段）
     "module": "nodenext",
+
+    // 允许 import './x.ts' 带 .ts 扩展名
     "allowImportingTsExtensions": true,
+
+    // 导入语句原样保留，编译器不自动增删。配合 noEmit 使用
     "verbatimModuleSyntax": true,
+
+    // 即使文件里没有 import/export，也当成独立模块处理。
+    // 避免出现「Cannot redeclare block-scoped variable」这类全局变量冲突
     "moduleDetection": "force",
+
+    // 只做类型检查，不生成任何 js 文件
     "noEmit": true,
 
-    /* Linting */
+    /* ==================== 更严格的检查（与 app 侧保持一致） ==================== */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts"]
+
+  // eslint.config.ts 也必须写进来。
+  // 否则 ESLint 的「类型感知规则」（projectService）会报：
+  //   "eslint.config.ts was not found by the project service"
+  "include": ["vite.config.ts", "eslint.config.ts"]
 }
