@@ -35,8 +35,14 @@ export interface CatalogFacet {
   catalogName: string
 }
 
-/** 已选条件里要移除的参数名 */
-export type ChipKey = 'brandId' | 'catalog3Id' | 'attrs'
+/**
+ * 已选条件里要移除的参数名。
+ *
+ * `keyword` 不在后端返回的 `navs` 里（后端只拼分类/品牌/属性三种），
+ * 是前端自己补的一条 —— 关键词没有复选框可以回显，不放进 chips 用户就
+ * 既看不到当前搜的是什么、也没地方一键清掉。
+ */
+export type ChipKey = 'keyword' | 'brandId' | 'catalog3Id' | 'attrs'
 
 /**
  * 一条已选筛选条件，对应 `SearchResult.NavVo`。

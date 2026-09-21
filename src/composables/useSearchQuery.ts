@@ -158,3 +158,36 @@ export function readPaging(query: SearchQuery): { pageNum: number; pageSize: num
     pageSize: query.pageSize && query.pageSize > 0 ? query.pageSize : 20,
   }
 }
+
+/**
+ * 取某个属性下已选的值（不含 `属性id_` 前缀）。
+ *
+ * URL 里存的是 `属性id_属性值`，这里按前缀筛出属于该属性的项、再把前缀切掉。
+ * **只切前缀长度**，所以属性值本身带下划线（`1_8GB_plus`）也能原样还原；
+ * 用 `split('_')[1]` 就会把它截断成 `8GB`（后端以前就是这么错的）。
+ *
+ * 抽成纯函数是为了能单独验证：这段逻辑放在组件里就测不到了。
+ */
+export function readAttrValues(attrs: string[] | undefined, attrId: number): string[] {
+  const prefix = `${attrId}_`
+  return (attrs ?? [])
+    .filter((item) => item.startsWith(prefix))
+    .map((item) => item.slice(prefix.length))
+}
+
+/**
+ * 把某个属性的选中值合并回 attrs。
+ *
+ * 只替换这个属性的项、其余原样保留 —— 不同属性之间是 AND 关系，互相覆盖就错了。
+ * 返回 undefined 表示这一项该从 URL 里整个删掉（该属性一个值都没选）。
+ */
+export function writeAttrValues(
+  attrs: string[] | undefined,
+  attrId: number,
+  values: string[],
+): string[] | undefined {
+  const prefix = `${attrId}_`
+  const others = (attrs ?? []).filter((item) => !item.startsWith(prefix))
+  const next = [...others, ...values.map((value) => `${prefix}${value}`)]
+  return next.length > 0 ? next : undefined
+}
