@@ -1,6 +1,10 @@
 <template>
-  <!-- TODO: replace with <RouterView /> once vue-router is installed -->
-  <div class="app-shell"></div>
+  <AppLayout>
+    <RouterView />
+  </AppLayout>
 </template>
 
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { RouterView } from 'vue-router'
+import AppLayout from '@/components/AppLayout/index.vue'
+</script>

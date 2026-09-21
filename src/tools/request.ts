@@ -67,6 +67,23 @@ export function clearToken(): void {
   localStorage.removeItem(REQUEST_CONFIG.tokenKey)
 }
 
+/**
+ * 未授权回调。
+ *
+ * 拦截器在 401 时会清掉 localStorage 里的 token，但它**不能直接去改 auth store** ——
+ * 那会形成 `store → api → request → store` 的循环依赖。
+ * 所以这里留一个注册点：auth store 初始化时把自己的清理动作注册进来，
+ * 401 发生时两边一起清，不会出现"localStorage 空了但页面还显示着用户名"。
+ */
+type UnauthorizedHandler = () => void
+
+let unauthorizedHandler: UnauthorizedHandler | null = null
+
+/** 注册 401 处理动作；传 null 取消注册 */
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  unauthorizedHandler = handler
+}
+
 /* ═══════════════════════════ 2. Result 实体 ═══════════════════════════ */
 
 /** 业务成功码。后端 R.java 里成功是 0，要改只改这一处 */
@@ -143,9 +160,12 @@ myAxios.interceptors.response.use(
       const body = error.response?.data as { msg?: string } | undefined
       message = body?.msg || `请求失败（HTTP ${status}）`
 
-      // 未授权：清掉本地 token
+      // 未授权：清掉本地 token，并通知 auth store 一起清
+      // （后端 /auth/user/info 在 token 缺失/无效/过期时返回的就是真 401，body 里
+      //   code 是 15004 或 15005，可以据此区分"请先登录"和"登录已过期"）
       if (status === 401) {
         clearToken()
+        unauthorizedHandler?.()
       }
     }
 
