@@ -11,10 +11,12 @@
       </nav>
 
       <div class="header__right">
-        <span class="header__cart" title="购物车开发中">
-          <el-icon><ShoppingCart /></el-icon>
+        <RouterLink class="header__cart" :to="{ name: 'cart' }">
+          <el-badge :value="cartBadge" :max="99" :hidden="cartBadge === 0">
+            <el-icon :size="18"><ShoppingCart /></el-icon>
+          </el-badge>
           <span>购物车</span>
-        </span>
+        </RouterLink>
         <UserMenu />
       </div>
     </div>
@@ -22,10 +24,31 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ShoppingCart } from '@element-plus/icons-vue'
-import { ElIcon } from 'element-plus'
+import { ElBadge, ElIcon } from 'element-plus'
 import UserMenu from './UserMenu.vue'
+import { useAuthStore } from '@/store/auth'
+import { useCartStore } from '@/store/cart'
+
+const auth = useAuthStore()
+
+/**
+ * 实例化 store 本身就是这里要做的一半事情：store 内部有一个跟着登录态走的 watch
+ * （登录后拉整车、退出后清空），只有 store 被实例化了它才存在。
+ * 头部是全局唯一常驻的组件，由它来"点火"最合适。
+ */
+const cart = useCartStore()
+
+/**
+ * 未登录时角标固定为 0。
+ *
+ * store 里的 watch 会在退出登录时清空购物车，但 status 是 unknown 的那一瞬
+ * （有 token 还没验证完）isLoggedIn 也是 false —— 那一瞬正是刷新页面时的第一帧，
+ * 不挡住的话会闪一下上一个用户的件数。
+ */
+const cartBadge = computed(() => (auth.isLoggedIn ? cart.countNum : 0))
 </script>
 
 <style scoped>
@@ -88,8 +111,13 @@ import UserMenu from './UserMenu.vue'
 .header__cart {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--mall-text-weak);
-  cursor: not-allowed;
+  gap: 8px;
+  color: var(--mall-text-secondary);
+  text-decoration: none;
+}
+
+.header__cart:hover,
+.header__cart.router-link-active {
+  color: var(--mall-primary);
 }
 </style>

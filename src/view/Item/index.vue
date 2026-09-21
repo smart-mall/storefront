@@ -60,10 +60,16 @@
           <QuantityStepper v-model="quantity" />
 
           <div class="item__actions">
-            <el-button type="primary" size="large" :disabled="!detail.hasStock" @click="notReady">
+            <el-button
+              type="primary"
+              size="large"
+              :disabled="!detail.hasStock"
+              :loading="cart.pending"
+              @click="addToCart"
+            >
               加入购物车
             </el-button>
-            <el-button size="large" :disabled="!detail.hasStock" @click="notReady">
+            <el-button size="large" :disabled="!detail.hasStock" @click="checkoutNotReady">
               立即购买
             </el-button>
           </div>
@@ -93,13 +99,14 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ElButton, ElMessage, ElSkeleton, ElTabPane, ElTabs } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
+import QuantityStepper from '@/components/QuantityStepper/index.vue'
 import AttrTable from './com/AttrTable.vue'
 import ImageGallery from './com/ImageGallery.vue'
-import QuantityStepper from './com/QuantityStepper.vue'
 import SaleAttrPicker from './com/SaleAttrPicker.vue'
 import { fetchSkuDetail } from '@/api/product'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { useCatalog } from '@/composables/useCatalog'
+import { useCartStore } from '@/store/cart'
 import { findCategoryPath } from '@/tools/catalog'
 
 const route = useRoute()
@@ -142,15 +149,35 @@ const descImages = computed(() =>
 const activeTab = ref('desc')
 const quantity = ref(1)
 
+const cart = useCartStore()
+
 /** 点选销售属性后跳到定位到的那个 SKU，详情会整体换掉 */
 function onSkuChange(skuId: number): void {
   void router.push({ name: 'item', params: { skuId } })
 }
 
-function notReady(): void {
-  // 购物车接口还是 @Controller 返回视图，SPA 拿不到 JSON，所以先给个明确反馈
-  // 而不是放一个点了没反应的按钮
-  ElMessage.info('购物车功能开发中')
+/**
+ * 加入购物车。
+ *
+ * 未登录时 store 会把请求拦下来并弹登录框（后端的 /cart/** 全部要求登录，
+ * 而请求层对 401 只打 console 不弹提示），所以这里不需要自己判断登录态。
+ * 加完把数量复位成 1 —— 用户再加一次通常是想再买一件，不是想重复上次那个量。
+ */
+async function addToCart(): Promise<void> {
+  const skuId = detail.value?.info.skuId
+  if (skuId === undefined) {
+    return
+  }
+  if (await cart.addItem(skuId, quantity.value)) {
+    ElMessage.success('已加入购物车')
+    quantity.value = 1
+  }
+}
+
+function checkoutNotReady(): void {
+  // 「立即购买」要先有结算页，而 order 模块对前台还没有 JSON 接口。
+  // 先给明确反馈，别放一个点了没反应的按钮。
+  ElMessage.info('结算功能开发中')
 }
 </script>
 

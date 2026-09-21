@@ -36,8 +36,16 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: '商品详情' },
   },
 
+  {
+    // 购物车数据在 store 里（头部角标和详情页加购都要用），不在 URL 里；
+    // 未登录时守卫会弹登录框并取消导航，因为后端的 /cart/** 全部要求登录
+    path: '/cart',
+    name: 'cart',
+    component: () => import('@/view/Cart/index.vue'),
+    meta: { title: '购物车', requiresAuth: true },
+  },
+
   // 以下为预约路由，等对应功能落地时再打开（视图文件还不存在，先注释掉）
-  // { path: '/cart',     name: 'cart',     component: () => import('@/view/Cart/index.vue'),     meta: { title: '购物车', requiresAuth: true } },
   // { path: '/checkout', name: 'checkout', component: () => import('@/view/Checkout/index.vue'), meta: { title: '结算',   requiresAuth: true } },
   // { path: '/order',    name: 'order',    component: () => import('@/view/Order/index.vue'),    meta: { title: '我的订单', requiresAuth: true } },
   // { path: '/coupon',   name: 'coupon',   component: () => import('@/view/Coupon/index.vue'),   meta: { title: '优惠券', requiresAuth: true } },
