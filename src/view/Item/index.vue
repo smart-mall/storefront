@@ -35,10 +35,17 @@
             {{ detail.info.skuSubtitle }}
           </p>
 
+          <!--
+            秒杀进行中时主价格换成秒杀价、原价划掉放旁边；没到点或已结束都只显示原价。
+            秒杀价在没到点的时候摆出来是有误导性的，所以未开始只在下面给一行提示。
+          -->
           <div class="item__price-row">
-            <span class="item__price">¥{{ detail.info.price.toFixed(2) }}</span>
+            <span class="item__price">¥{{ displayPrice }}</span>
+            <s v-if="inSeckill" class="item__price-was">¥{{ detail.info.price.toFixed(2) }}</s>
             <span v-if="!detail.hasStock" class="item__stock">缺货</span>
           </div>
+
+          <p v-if="seckillHint" class="item__seckill-hint">{{ seckillHint }}</p>
 
           <dl class="item__meta">
             <div class="item__meta-item">
@@ -57,9 +64,18 @@
             @change="onSkuChange"
           />
 
-          <QuantityStepper v-model="quantity" />
+          <!-- 秒杀进行中时限购数就是数量上限，超了后端返回 18003，不如前端先挡住 -->
+          <QuantityStepper v-model="quantity" :max="maxQuantity" />
 
+          <!--
+            秒杀进行中额外给一个「立即抢购」，但**保留**加入购物车和立即购买。
+            改造前的 item.html 是在秒杀时段把加入购物车整个藏掉的，这里不照搬 ——
+            藏掉等于用户想按原价买都买不了，没有理由。
+          -->
           <div class="item__actions">
+            <el-button v-if="inSeckill" type="danger" size="large" :loading="killing" @click="kill">
+              立即抢购
+            </el-button>
             <el-button
               type="primary"
               size="large"
@@ -104,10 +120,13 @@ import AttrTable from './com/AttrTable.vue'
 import ImageGallery from './com/ImageGallery.vue'
 import SaleAttrPicker from './com/SaleAttrPicker.vue'
 import { fetchSkuDetail } from '@/api/product'
+import { seckillKill } from '@/api/seckill'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { useCatalog } from '@/composables/useCatalog'
+import { useNow } from '@/composables/useNow'
 import { useCartStore } from '@/store/cart'
 import { findCategoryPath } from '@/tools/catalog'
+import { formatDateTime, seckillPhase } from '@/tools/time'
 
 const route = useRoute()
 const router = useRouter()
@@ -150,6 +169,81 @@ const activeTab = ref('desc')
 const quantity = ref(1)
 
 const cart = useCartStore()
+
+/* ═══════════════════ 秒杀 ═══════════════════ */
+
+/**
+ * 每秒跳一次的"现在"。
+ *
+ * 必须是个会走的时钟而不是 `Date.now()` 直接读：用户把页面开着不动，
+ * 场次从"未开始"跨到"进行中"、或从"进行中"跨到"已结束"的时候，
+ * 按钮和价格要自己跟着变，不能等用户手动刷新。
+ */
+const now = useNow()
+
+/** 随商品详情一起返回的秒杀信息。不参加秒杀、或场次已结束时后端给 null */
+const seckill = computed(() => detail.value?.seckillSkuVo ?? null)
+
+const phase = computed(() =>
+  seckill.value ? seckillPhase(seckill.value.startTime, seckill.value.endTime, now.value) : 'ended',
+)
+
+/**
+ * 能不能抢。
+ *
+ * 除了"正在进行中"还要求 randomCode 非空：后端只在秒杀进行中才把随机码下发到详情里，
+ * 它是这次抢购的凭证，没有它调 kill 必定返回 18001。
+ */
+const inSeckill = computed(() => phase.value === 'active' && seckill.value?.randomCode != null)
+
+const displayPrice = computed(() => {
+  const s = seckill.value
+  if (inSeckill.value && s) {
+    return s.seckillPrice.toFixed(2)
+  }
+  return (detail.value?.info.price ?? 0).toFixed(2)
+})
+
+/** 未开始 / 已结束各给一行提示；进行中不提，价格本身已经说明问题了 */
+const seckillHint = computed(() => {
+  const s = seckill.value
+  if (!s || inSeckill.value) {
+    return ''
+  }
+  return phase.value === 'upcoming'
+    ? `本商品将于 ${formatDateTime(s.startTime)} 开始秒杀`
+    : '本商品的秒杀场次已结束'
+})
+
+/** 秒杀进行中按每人限购数限制数量输入 */
+const maxQuantity = computed(() => seckill.value?.seckillLimit ?? 99)
+
+const killing = ref(false)
+
+/**
+ * 抢购。
+ *
+ * killId 是后端 Redis hash 的 field，格式固定为 `场次id-skuId`，由前端拼好原样回传。
+ *
+ * ⚠️ 成功后**不能**跳支付页：订单号是后端发 MQ 之前生成的，那一刻订单还没落库，
+ *    支付页去查会拿到 17000。这里跳"我的订单"，用户能看到订单出现后再点支付。
+ */
+async function kill(): Promise<void> {
+  const s = seckill.value
+  if (!inSeckill.value || !s?.randomCode) {
+    return
+  }
+  killing.value = true
+  try {
+    await seckillKill(`${s.promotionSessionId}-${s.skuId}`, s.randomCode, quantity.value)
+    ElMessage.success('抢购成功，订单正在生成')
+    void router.push({ name: 'order' })
+  } catch {
+    // 失败原因由请求拦截器按后端 code 弹出（18002 已抢完 / 18003 超限购 / 18004 已经抢过）
+  } finally {
+    killing.value = false
+  }
+}
 
 /** 点选销售属性后跳到定位到的那个 SKU，详情会整体换掉 */
 function onSkuChange(skuId: number): void {
@@ -276,6 +370,19 @@ async function buyNow(): Promise<void> {
   font-weight: 600;
   color: var(--mall-primary);
   font-variant-numeric: tabular-nums;
+}
+
+/* 秒杀进行中时和秒杀价并排显示的划线原价 */
+.item__price-was {
+  font-size: 14px;
+  color: var(--mall-text-weak);
+}
+
+/* 秒杀未开始 / 已结束的一行提示 */
+.item__seckill-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mall-primary);
 }
 
 .item__stock {

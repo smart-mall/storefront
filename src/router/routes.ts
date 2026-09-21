@@ -35,6 +35,14 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/view/Item/index.vue'),
     meta: { title: '商品详情' },
   },
+  {
+    // 秒杀场次页。数据源只给"正在进行中"的场次，所以这个列表里看不到还没开始抢的商品；
+    // 未开始的商品只在它自己的详情页上有提示。不需要登录 —— 浏览是匿名的，抢购才要。
+    path: '/seckill',
+    name: 'seckill',
+    component: () => import('@/view/Seckill/index.vue'),
+    meta: { title: '限时秒杀' },
+  },
 
   {
     // 购物车数据在 store 里（头部角标和详情页加购都要用），不在 URL 里；

@@ -5,6 +5,9 @@
     </aside>
 
     <section class="home__main">
+      <!-- 秒杀栏：没有正在进行的场次时它自己整块不渲染，不会留空位 -->
+      <SeckillStrip />
+
       <div class="home__head">
         <h2 class="home__title">热门商品</h2>
         <SortBar :sort="query.sort" :total="data?.total" @update:sort="onSortChange" />
@@ -29,6 +32,7 @@ import AppPagination from '@/components/AppPagination/index.vue'
 import ProductGrid from '@/components/ProductGrid/index.vue'
 import SortBar from '@/components/SortBar/index.vue'
 import CategorySidebar from './com/CategorySidebar.vue'
+import SeckillStrip from './com/SeckillStrip.vue'
 import { searchSkus } from '@/api/search'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { readPaging, useSearchQuery } from '@/composables/useSearchQuery'

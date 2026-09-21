@@ -6,7 +6,7 @@
       <nav class="header__nav">
         <RouterLink to="/">首页</RouterLink>
         <RouterLink :to="{ name: 'search' }">全部商品</RouterLink>
-        <span class="header__nav-disabled" title="功能开发中">秒杀</span>
+        <RouterLink :to="{ name: 'seckill' }">秒杀</RouterLink>
         <span class="header__nav-disabled" title="功能开发中">优惠券</span>
       </nav>
 
