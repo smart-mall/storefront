@@ -6,6 +6,7 @@
  *   auth/     登录（会员、三种登录表单、登录结果）
  *   search/   检索（请求参数、筛选候选、检索结果）
  *   cart/     购物车（购物项、整车汇总、各写操作的请求体）
+ *   order/    订单（订单本体与列表、结算页数据、提交与支付）
  *
  * 后端统一响应结构 `Result<T>` 不在这里重新定义 —— 它属于请求层，
  * 已经在 `@/tools/request` 里声明，这里只做再导出，保证全项目只有一处定义。
@@ -17,3 +18,4 @@ export type * from './product'
 export type * from './auth'
 export type * from './search'
 export type * from './cart'
+export type * from './order'

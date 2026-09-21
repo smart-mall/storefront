@@ -69,7 +69,7 @@
             >
               加入购物车
             </el-button>
-            <el-button size="large" :disabled="!detail.hasStock" @click="checkoutNotReady">
+            <el-button size="large" :disabled="!detail.hasStock" @click="buyNow">
               立即购买
             </el-button>
           </div>
@@ -174,10 +174,22 @@ async function addToCart(): Promise<void> {
   }
 }
 
-function checkoutNotReady(): void {
-  // 「立即购买」要先有结算页，而 order 模块对前台还没有 JSON 接口。
-  // 先给明确反馈，别放一个点了没反应的按钮。
-  ElMessage.info('结算功能开发中')
+/**
+ * 立即购买。
+ *
+ * ⚠️ 它走的是和「加入购物车」同一条路：先把这一件加进购物车，再跳结算页。
+ *    所以如果购物车里原本还有别的已勾选商品，会一起被结算进去。
+ *    真正的"只买这一件"需要后端开一条绕过购物车的下单路径，这轮没做。
+ */
+async function buyNow(): Promise<void> {
+  const skuId = detail.value?.info.skuId
+  if (skuId === undefined) {
+    return
+  }
+  if (await cart.addItem(skuId, quantity.value)) {
+    quantity.value = 1
+    await router.push({ name: 'checkout' })
+  }
 }
 </script>
 

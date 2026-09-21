@@ -80,10 +80,9 @@ function onRemoveChecked(): void {
 }
 
 function onCheckout(): void {
-  // 结算页还没做：order 模块对前台还没有 JSON 接口，它的 OrderWebController
-  // 返回的是 Thymeleaf 视图（而且那个模板还在读已经退役的 session.loginUser）。
-  // 先给一个明确反馈，别放一个点了没反应的按钮。
-  ElMessage.info('结算功能开发中')
+  // 买什么由结算页去问后端（后端按"已勾选项"算），这里只负责跳过去。
+  // 注意不要把 cart.items 里的勾选项带过去 —— 那就等于前端也维护了一份"买什么"的真相
+  void router.push({ name: 'checkout' })
 }
 </script>
 
