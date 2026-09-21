@@ -1,0 +1,21 @@
+# 构建上下文用不到的，全部排除：既缩小上下文，也避免把本机产物带进镜像。
+# 注意不要排除 package-lock.json —— Dockerfile 的 npm ci 依赖它。
+
+# 依赖与本机构建产物（镜像内会重新装、重新构建）
+node_modules
+dist
+
+# 版本控制与 IDE
+.git
+.gitignore
+.gitattributes
+.idea
+.vscode
+*.iml
+
+# husky 的钩子目录：构建阶段设了 HUSKY=0，用不到
+.husky
+
+# 文档与日志
+*.md
+*.log
