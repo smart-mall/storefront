@@ -94,6 +94,33 @@ export interface Result<T = unknown> {
   code: number
   msg: string
   data: T
+  /**
+   * 字段级错误：字段名 → 中文消息。
+   *
+   * 只有校验类失败才有（注解校验、手写校验、请求体不是合法 JSON）。判断"这是字段级错误"的
+   * 依据是**有没有这个字段**，不是 code —— 因为 JSON 解析失败是 10002，同样带它。
+   */
+  errors?: Record<string, string>
+}
+
+/**
+ * 拼出给用户看的错误文案。
+ *
+ * 校验类失败的 msg 是固定文案（"参数格式校验失败"），具体信息在 errors 里；不拼进来的话
+ * 用户只能看到一句"校验失败"，取不到原因。errors 缺失（纯业务异常）或类型不是对象
+ * （旧版后端把异常文本直接塞进 errors）时退回 msg。
+ */
+function buildErrorMessage(body: Result): string {
+  const errors = body.errors
+  if (errors && typeof errors === 'object') {
+    const messages = Object.keys(errors)
+      .map((key) => errors[key])
+      .filter(Boolean)
+    if (messages.length) {
+      return messages.join('；')
+    }
+  }
+  return body.msg || '请求失败'
 }
 
 /* ═══════════════════════════ 3. 请求工具 ═══════════════════════════ */
@@ -136,7 +163,7 @@ myAxios.interceptors.response.use(
 
     // code 不等于成功码 —— 业务错误
     if (body.code !== SUCCESS_CODE) {
-      const message = body.msg || '请求失败'
+      const message = buildErrorMessage(body)
       console.error(`[业务错误] code=${body.code} ${message}`)
       ElMessage.error(message)
       throw new Error(message)
