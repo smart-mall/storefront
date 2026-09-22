@@ -11,7 +11,12 @@ export interface CategoryNode {
   catId: number
   /** 分类名称 */
   name: string
-  /** 图标地址，只有一级分类有值 */
+  /**
+   * Element UI 图标类名（如 `el-icon-goods`），**不是 URL**。
+   *
+   * 用途是后台分类树的三个层级渲染，这个接口只是把它透传出来，SPA 目前不显示它。
+   * 仍然留在类型里是因为后端 `CategoryVo` 确实返回它，删掉会和响应体对不上。
+   */
   icon: string | null
   /** 子分类，三级分类为空数组 */
   children: CategoryNode[]
