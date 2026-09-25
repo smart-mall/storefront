@@ -2,10 +2,10 @@
  * 登录域的实体类型。
  *
  * 对应后端 auth 模块：
- *   - `/api/auth/account/{register,login}`
- *   - `/api/auth/email/{sendCode,login}`
- *   - `/api/auth/sms/{sendCode,login}`
- *   - `GET /api/auth/user/info`
+ *   - `/api/auth/front/account/{register,login}`
+ *   - `/api/auth/front/email/{sendCode,login}`
+ *   - `/api/auth/front/sms/{sendCode,login}`
+ *   - `GET /api/auth/front/jwt/user/info`
  */
 
 export type { MemberGender, MemberProfile } from './member'

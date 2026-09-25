@@ -6,24 +6,21 @@
  *
  * 处理规则：
  *   1. 发请求：有 token 就自动加到请求头
- *   2. 响应不是 200（网络错误）：console.error + 抛 error 中断
+ *   2. code === 15004 / 15005（未登录 / 登录过期）：清本地登录态 + 回调 auth store，不弹窗
  *   3. code 不等于成功码（业务错误）：console.error + ElMessage 弹窗 + 抛 error 中断
- *   4. 响应体没有 code：跳过业务码判断，原样返回
+ *   4. HTTP 层错误（超时、断网、5xx）：console.error + 抛 error 中断，不弹窗
  *
  * 拦截器返回的是**完整 AxiosResponse**，所以取值是 `res.data.data` / `res.data.msg`：
  *
- *   const res = await myAxios.get<Result<SkuItemVo>>(`/product/skuinfo/item/${skuId}`)
+ *   const res = await myAxios.get<Result<SkuItemVo>>(`/product/front/item/${skuId}`)
  *   const item = res.data.data      // SkuItemVo
  *
  * 两个后端事实（不知道会踩坑）：
- *   ① 成功码是 0 不是 1 —— 后端 common/utils/R.java 里是 put("code", 0)，
- *      而且全后端都依赖它（LoginController 里 if (r.getCode() != 0) 抛异常）。
- *   ② 不是所有接口都返回 Result —— R extends HashMap，于是有三类响应：
- *        R.ok().setData(x)      → { code, msg, data: x }
- *        R.ok().put("page", p)  → { code, msg, page: p }   数据在顶层，不在 data 里
- *        return 裸对象           → 连 code 都没有
- *      第三类如 GET /index/catalog.json（裸 Map）、GET /queryByOrderId（裸实体）、
- *      GET /aliPayOrder（HTML 文本），必须跳过业务码判断，否则首页都加载不出来。
+ *   ① 成功码是 0 不是 1 —— 后端 common/utils/R.java 里是 put("code", 0)。
+ *   ② **所有接口都返回 HTTP 200**，业务结果只在 body 的 code 里，所以"未登录"不是
+ *      状态码 401 而是 code 15004 / 15005，判断必须走 code。响应体只有两种形状：
+ *      R.ok().setData(x) → { code, msg, data: x }；R.ok().put("page", p) →
+ *      { code, msg, page: p }，数据在顶层不在 data 里。
  */
 
 import type { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios'
@@ -33,9 +30,9 @@ import { ElMessage } from 'element-plus'
 /* ═══════════════════════════ 1. 统一配置 ═══════════════════════════ */
 
 export const REQUEST_CONFIG = {
-  // 所有请求的公共前缀。开发时由 vite proxy、生产时由 nginx 转发到网关。
-  // 用相对路径是为了「同源」——登录态是 session cookie，同源才能自动带上，
-  // 也就不需要处理 CORS。要指向别处就在 .env 里设 VITE_API_BASE_URL。
+  // 所有请求的公共前缀，直指网关。写成绝对地址是有意的：网关的 CORS 白名单里列了
+  // 前端的源（见 gateway 的 CorsConfiguration），换端口要同步加进去。
+  // 登录态是 Authorization 头里的 JWT，不依赖同源 cookie。
   baseURL: 'http://localhost:53000/api',
 
   // 超时时间（毫秒）
@@ -67,16 +64,16 @@ export function clearToken(): void {
 /**
  * 未授权回调。
  *
- * 拦截器在 401 时会清掉 localStorage 里的 token，但它**不能直接去改 auth store** ——
- * 那会形成 `store → api → request → store` 的循环依赖。
+ * 拦截器遇到"未登录 / 登录过期"（code 15004 / 15005）时会清掉 localStorage 里的 token，
+ * 但它**不能直接去改 auth store** —— 那会形成 `store → api → request → store` 的循环依赖。
  * 所以这里留一个注册点：auth store 初始化时把自己的清理动作注册进来，
- * 401 发生时两边一起清，不会出现"localStorage 空了但页面还显示着用户名"。
+ * 两边一起清，不会出现"localStorage 空了但页面还显示着用户名"。
  */
 type UnauthorizedHandler = () => void
 
 let unauthorizedHandler: UnauthorizedHandler | null = null
 
-/** 注册 401 处理动作；传 null 取消注册 */
+/** 注册未授权处理动作；传 null 取消注册 */
 export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
   unauthorizedHandler = handler
 }
@@ -85,6 +82,10 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): voi
 
 /** 业务成功码。后端 R.java 里成功是 0，要改只改这一处 */
 export const SUCCESS_CODE = 0
+
+/** 未登录 / 登录已过期。后端一律返回 HTTP 200，凭证问题靠这两个码判断 */
+export const NOT_LOGIN_CODE = 15004
+export const LOGIN_EXPIRED_CODE = 15005
 
 /** 后端统一响应结构，对应 common/utils/R.java */
 export interface Result<T = unknown> {
@@ -126,8 +127,8 @@ function buildErrorMessage(body: Result): string {
 const myAxios: AxiosInstance = axios.create({
   baseURL: REQUEST_CONFIG.baseURL,
   timeout: REQUEST_CONFIG.timeout,
-  // 带着 cookie 发请求。登录态是服务端 session（auth 服务往 HttpSession 写 LOGIN_USER），
-  // 依赖 JSESSIONID cookie
+  // 登录态是 Authorization 头里的 JWT，cookie 不是必需的。保留 true 是因为网关的 CORS
+  // 已经按"带凭据"配置（具体源 + allowCredentials），两边要保持一致
   withCredentials: true,
   // ⚠️ 不要在这里设默认 Content-Type。axios 1.x 见到 FormData 时，只要 Content-Type 里带
   // application/json 就会把它序列化成 JSON（文件内容直接丢），上传因此永远不是 multipart，
@@ -158,6 +159,15 @@ myAxios.interceptors.response.use(
 
     const body = response.data
 
+    // 未登录 / 登录过期：清掉本地登录态并通知 auth store，不弹窗
+    // （后端一律返回 HTTP 200，凭证问题只能看 body 的 code）
+    if (body.code === NOT_LOGIN_CODE || body.code === LOGIN_EXPIRED_CODE) {
+      console.error(`[未授权] code=${body.code} ${body.msg}`)
+      clearToken()
+      unauthorizedHandler?.()
+      throw new Error(body.msg || '登录已失效，请重新登录')
+    }
+
     // code 不等于成功码 —— 业务错误
     if (body.code !== SUCCESS_CODE) {
       const message = buildErrorMessage(body)
@@ -180,17 +190,10 @@ myAxios.interceptors.response.use(
           ? `请求超时（${REQUEST_CONFIG.timeout}ms）`
           : '网络异常，请检查网络连接'
     } else {
-      // 拿到了响应但状态码不对。有些接口即使非 2xx 也带 Result，优先用后端的 msg
+      // 拿到了响应但状态码不对 —— 后端业务响应都是 200，走到这里说明出错的是网关之外的一层
+      // （nginx 502、Tomcat 拒绝请求目标等）。未登录不在这里判断，见上面的 code 分支
       const body = error.response?.data as { msg?: string } | undefined
       message = body?.msg || `请求失败（HTTP ${status}）`
-
-      // 未授权：清掉本地 token，并通知 auth store 一起清
-      // （后端 /auth/user/info 在 token 缺失/无效/过期时返回的就是真 401，body 里
-      //   code 是 15004 或 15005，可以据此区分"请先登录"和"登录已过期"）
-      if (status === 401) {
-        clearToken()
-        unauthorizedHandler?.()
-      }
     }
 
     // 需求要求：网络错误只报控制台，不弹窗。想弹窗就在这里加 ElMessage.error(message)

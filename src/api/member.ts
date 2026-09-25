@@ -2,10 +2,10 @@
  * 会员中心接口。
  *
  * 对应后端三个模块：
- *   member       `PUT /api/member/front/profile`、`/api/member/front/address/**`、
- *                `GET /api/member/memberloginlog/mine`
- *   auth         `PUT /api/auth/user/mobile`、`PUT /api/auth/user/email`
- *   third-party  `GET /api/thirdParty/address/tree`（省市区字典，地址表单用）
+ *   member       `PUT /api/member/front/jwt/profile`、`/api/member/front/jwt/address/**`、
+ *                `GET /api/member/front/jwt/memberloginlog/mine`
+ *   auth         `PUT /api/auth/front/jwt/user/mobile`、`PUT /api/auth/front/jwt/user/email`
+ *   third-party  `GET /api/thirdParty/front/address/tree`（省市区字典，地址表单用）
  *
  * 会员身份一律由后端的登录态决定，前端不传 memberId。
  */
@@ -34,7 +34,7 @@ import type {
  * 字段级失败（昵称超长等）由请求层弹出，调用方 catch 即可。
  */
 export async function updateProfile(form: ProfileUpdateForm): Promise<LoginResult> {
-  const res = await myAxios.put<Result<LoginResult>>('/member/front/profile', form)
+  const res = await myAxios.put<Result<LoginResult>>('/member/front/jwt/profile', form)
   return res.data.data
 }
 
@@ -47,12 +47,18 @@ export async function updateProfile(form: ProfileUpdateForm): Promise<LoginResul
  * 号码已被其他账号绑定时后端返回 15006（msg 是中文，请求层会弹出来）。
  */
 export async function changeMobile(form: ChangeContactForm): Promise<void> {
-  await myAxios.put<Result<void>>('/auth/user/mobile', { mobile: form.value, code: form.code })
+  await myAxios.put<Result<void>>('/auth/front/jwt/user/mobile', {
+    mobile: form.value,
+    code: form.code,
+  })
 }
 
 /** 换绑邮箱，语义同 changeMobile，占用时返回 15007 */
 export async function changeEmail(form: ChangeContactForm): Promise<void> {
-  await myAxios.put<Result<void>>('/auth/user/email', { email: form.value, code: form.code })
+  await myAxios.put<Result<void>>('/auth/front/jwt/user/email', {
+    email: form.value,
+    code: form.code,
+  })
 }
 
 /**
@@ -64,7 +70,9 @@ export async function fetchLoginLogPage(params: {
   pageNum: number
   pageSize: number
 }): Promise<LoginLogPage> {
-  const res = await myAxios.get<Result<LoginLogPage>>('/member/memberloginlog/mine', { params })
+  const res = await myAxios.get<Result<LoginLogPage>>('/member/front/jwt/memberloginlog/mine', {
+    params,
+  })
   return res.data.data
 }
 
@@ -72,30 +80,30 @@ export async function fetchLoginLogPage(params: {
 
 /** 我的收货地址，默认地址排在最前（后端排好的） */
 export async function fetchMyAddresses(): Promise<MemberAddress[]> {
-  const res = await myAxios.get<Result<MemberAddress[]>>('/member/front/address')
+  const res = await myAxios.get<Result<MemberAddress[]>>('/member/front/jwt/address')
   return res.data.data
 }
 
 /** 新增。第一条会自动成为默认；超过 20 条返回 15008 */
 export async function createAddress(form: AddressSaveForm): Promise<MemberAddress> {
-  const res = await myAxios.post<Result<MemberAddress>>('/member/front/address', form)
+  const res = await myAxios.post<Result<MemberAddress>>('/member/front/jwt/address', form)
   return res.data.data
 }
 
 /** 修改。id 不属于自己时返回 17004（收货地址不存在） */
 export async function updateAddress(id: number, form: AddressSaveForm): Promise<MemberAddress> {
-  const res = await myAxios.put<Result<MemberAddress>>(`/member/front/address/${id}`, form)
+  const res = await myAxios.put<Result<MemberAddress>>(`/member/front/jwt/address/${id}`, form)
   return res.data.data
 }
 
 /** 删除。删掉的是默认那条时，后端会把剩下最早的一条提为默认 */
 export async function deleteAddress(id: number): Promise<void> {
-  await myAxios.delete<Result<void>>(`/member/front/address/${id}`)
+  await myAxios.delete<Result<void>>(`/member/front/jwt/address/${id}`)
 }
 
 /** 设为默认。后端在同一事务里把其他地址的默认标记清掉 */
 export async function setDefaultAddress(id: number): Promise<void> {
-  await myAxios.put<Result<void>>(`/member/front/address/${id}/default`)
+  await myAxios.put<Result<void>>(`/member/front/jwt/address/${id}/default`)
 }
 
 /**
@@ -107,6 +115,6 @@ export async function setDefaultAddress(id: number): Promise<void> {
  * ⚠️ 树最深到居委会，展示前要按深度裁（见 `pruneAddressTree`）。
  */
 export async function fetchAddressTree(): Promise<AreaNode[]> {
-  const res = await myAxios.get<Result<AreaNode[]>>('/thirdParty/address/tree')
+  const res = await myAxios.get<Result<AreaNode[]>>('/thirdParty/front/address/tree')
   return res.data.data
 }

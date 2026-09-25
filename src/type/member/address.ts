@@ -44,7 +44,7 @@ export interface AddressSaveForm {
 }
 
 /**
- * 行政区划树的节点，对应 third-party 的 `GET /api/thirdParty/address/tree`。
+ * 行政区划树的节点，对应 third-party 的 `GET /api/thirdParty/front/address/tree`。
  *
  * ⚠️ 节点上**没有层级字段**（后端是 `AreaTreeNode{code,name,children}`，而表里的
  * `NODE_LEVEL` 没有暴露出来），树最深到居委会，而收货地址只要省市区三级 ——

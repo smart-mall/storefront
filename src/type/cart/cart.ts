@@ -1,17 +1,17 @@
 /**
  * 购物车。
  *
- * 对应后端 cart 服务（经网关 53000 的 `/api/cart/**` 转发，剥掉 `/api` 后落到 `cart/...`）：
- *   GET    /cart/list                       整车
- *   GET    /cart/checked                    已勾选项（价格实时刷新）
- *   POST   /cart/items                      加购
- *   PUT    /cart/items/{skuId}/count        改数量
- *   PUT    /cart/items/{skuId}/check        勾选单项
- *   PUT    /cart/items/check                批量勾选 / 全选反选
- *   DELETE /cart/items/{skuId}              删单项
- *   DELETE /cart/items?skuIds=1&skuIds=2    批量删
+ * 对应后端 cart 服务（经网关 53000 的 `/api/cart/front/jwt/**` 转发，剥掉 `/api` 后落到 `cart/front/jwt/...`）：
+ *   GET    /cart/front/jwt/list                       整车
+ *   GET    /cart/front/jwt/checked                    已勾选项（价格实时刷新）
+ *   POST   /cart/front/jwt/items                      加购
+ *   PUT    /cart/front/jwt/items/{skuId}/count        改数量
+ *   PUT    /cart/front/jwt/items/{skuId}/check        勾选单项
+ *   PUT    /cart/front/jwt/items/check                批量勾选 / 全选反选
+ *   DELETE /cart/front/jwt/items/{skuId}              删单项
+ *   DELETE /cart/front/jwt/items?skuIds=1&skuIds=2    批量删
  *
- * ⚠️ 除 `/cart/checked` 外，**每个写操作返回的都是整车**而不是被改的那一项。
+ * ⚠️ 除 `/cart/front/jwt/checked` 外，**每个写操作返回的都是整车**而不是被改的那一项。
  *    所以前端不要自己维护 totalAmount / countNum —— 后端已经算好了，
  *    前端再算一遍等于同一个公式有两份实现，早晚会不一致。
  */

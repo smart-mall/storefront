@@ -2,8 +2,8 @@
  * 结算页数据。
  *
  * 对应后端 order 模块：
- *   GET /api/order/front/confirm      → OrderConfirm
- *   GET /api/order/front/fare?addrId= → FareResult
+ *   GET /api/order/front/jwt/confirm      → OrderConfirm
+ *   GET /api/order/front/jwt/fare?addrId= → FareResult
  */
 
 import type { MemberAddress } from '@/type/member'

@@ -253,8 +253,8 @@ function onSkuChange(skuId: number): void {
 /**
  * 加入购物车。
  *
- * 未登录时 store 会把请求拦下来并弹登录框（后端的 /cart/** 全部要求登录，
- * 而请求层对 401 只打 console 不弹提示），所以这里不需要自己判断登录态。
+ * 未登录时 store 会把请求拦下来并弹登录框（后端的 /cart/front/jwt/** 全部要求登录，
+ * 而请求层对未授权只打 console 不弹提示），所以这里不需要自己判断登录态。
  * 加完把数量复位成 1 —— 用户再加一次通常是想再买一件，不是想重复上次那个量。
  */
 async function addToCart(): Promise<void> {

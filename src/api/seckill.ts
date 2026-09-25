@@ -30,6 +30,6 @@ export async function fetchCurrentSeckill(): Promise<CurrentSeckill[]> {
  * @param num    购买数量
  */
 export async function seckillKill(killId: string, key: string, num: number): Promise<string> {
-  const res = await myAxios.post<Result<string>>('/seckill/front/kill', { killId, key, num })
+  const res = await myAxios.post<Result<string>>('/seckill/front/jwt/kill', { killId, key, num })
   return res.data.data
 }

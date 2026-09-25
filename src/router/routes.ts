@@ -46,7 +46,7 @@ export const routes: RouteRecordRaw[] = [
 
   {
     // 购物车数据在 store 里（头部角标和详情页加购都要用），不在 URL 里；
-    // 未登录时守卫会弹登录框并取消导航，因为后端的 /cart/** 全部要求登录
+    // 未登录时守卫会弹登录框并取消导航，因为后端的 /cart/front/jwt/** 全部要求登录
     path: '/cart',
     name: 'cart',
     component: () => import('@/view/Cart/index.vue'),

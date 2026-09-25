@@ -2,9 +2,9 @@
  * 订单实体与订单列表分页。
  *
  * 对应后端 order 模块：
- *   GET /api/order/front/list             → OrderPage
- *   GET /api/order/front/detail/{orderSn} → Order
- *   GET /api/order/front/status/{orderSn} → OrderStatusResult
+ *   GET /api/order/front/jwt/list             → OrderPage
+ *   GET /api/order/front/jwt/detail/{orderSn} → Order
+ *   GET /api/order/front/jwt/status/{orderSn} → OrderStatusResult
  *
  * ⚠️ 这里的接口是**按前端用到的字段挑出来的投影**，不是 oms_order 的完整镜像 ——
  *    后端还会返回发票、促销金额、物流公司等一大堆暂时用不上的字段。

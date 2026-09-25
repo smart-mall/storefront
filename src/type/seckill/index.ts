@@ -2,8 +2,8 @@
  * 秒杀。
  *
  * 对应后端 seckill 服务的两个前台接口：
- *   GET  /api/seckill/front/current → CurrentSeckill[]
- *   POST /api/seckill/front/kill    → 秒杀订单号
+ *   GET  /api/seckill/front/current     → CurrentSeckill[]
+ *   POST /api/seckill/front/jwt/kill    → 秒杀订单号
  *
  * 和 `@/type/product` 里那个 `SeckillSku` 的分工：
  *   SeckillSku      随商品详情一起返回，只有秒杀本身的信息（详情页用它决定显不显示抢购按钮）

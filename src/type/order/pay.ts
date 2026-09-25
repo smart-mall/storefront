@@ -2,9 +2,9 @@
  * 提交订单与支付。
  *
  * 对应后端：
- *   POST /api/order/front/submit         → SubmitOrderResult
- *   POST /api/order/front/pay/{orderSn}  → PayResult
- *   PUT  /api/order/front/cancel/{orderSn}
+ *   POST /api/order/front/jwt/submit         → SubmitOrderResult
+ *   POST /api/order/front/jwt/pay/{orderSn}  → PayResult
+ *   PUT  /api/order/front/jwt/cancel/{orderSn}
  */
 
 /** 支付方式，取值对应后端 `order/constant/PayConstant` */

@@ -1,11 +1,10 @@
 /**
  * 购物车模块接口。
  *
- * 对应后端 cart 服务，经网关 53000 的 `/api/cart/**` 转发。
+ * 对应后端 cart 服务，经网关 53000 的 `/api/cart/front/jwt/**` 转发。
  *
- * ⚠️ 购物车的**所有**接口都要求登录，未登录时后端返回真 HTTP 401（body 里 code=15004）。
- *    但请求层对 401 只打 console 不弹提示（那属于"网络错误"分支），
- *    所以调用方要先确认登录态，别指望请求失败能给出反馈 —— 见 store/cart.ts 的 requireLogin。
+ * ⚠️ 购物车的**所有**接口都要求登录。未登录时后端返回 code 15004，请求层会清掉本地登录态
+ *    但不弹提示，所以调用方要先确认登录态，别指望请求失败能给出反馈 —— 见 store/cart.ts 的 requireLogin。
  */
 
 import { myAxios } from '@/tools/request'
@@ -21,7 +20,7 @@ import type {
 
 /** 整车（含未勾选项） */
 export async function fetchCart(): Promise<Cart> {
-  const res = await myAxios.get<Result<Cart>>('/cart/list')
+  const res = await myAxios.get<Result<Cart>>('/cart/front/jwt/list')
   return res.data.data
 }
 
@@ -32,13 +31,13 @@ export async function fetchCart(): Promise<Cart> {
  * 前端接结算时可以复用，免得又去猜后端返回的是整车还是列表。
  */
 export async function fetchCheckedCartItems(): Promise<CartItem[]> {
-  const res = await myAxios.get<Result<CartItem[]>>('/cart/checked')
+  const res = await myAxios.get<Result<CartItem[]>>('/cart/front/jwt/checked')
   return res.data.data
 }
 
 /** 加购。车里已有这个 sku 就累加数量 */
 export async function addCartItem(payload: AddCartItemPayload): Promise<Cart> {
-  const res = await myAxios.post<Result<Cart>>('/cart/items', payload)
+  const res = await myAxios.post<Result<Cart>>('/cart/front/jwt/items', payload)
   return res.data.data
 }
 
@@ -47,25 +46,25 @@ export async function changeCartItemCount(
   skuId: number,
   payload: ChangeCartItemCountPayload,
 ): Promise<Cart> {
-  const res = await myAxios.put<Result<Cart>>(`/cart/items/${skuId}/count`, payload)
+  const res = await myAxios.put<Result<Cart>>(`/cart/front/jwt/items/${skuId}/count`, payload)
   return res.data.data
 }
 
 /** 勾选 / 取消勾选单项 */
 export async function checkCartItem(skuId: number, payload: CheckCartItemPayload): Promise<Cart> {
-  const res = await myAxios.put<Result<Cart>>(`/cart/items/${skuId}/check`, payload)
+  const res = await myAxios.put<Result<Cart>>(`/cart/front/jwt/items/${skuId}/check`, payload)
   return res.data.data
 }
 
 /** 批量勾选 / 全选反选 */
 export async function checkCartItems(payload: CheckCartItemsPayload): Promise<Cart> {
-  const res = await myAxios.put<Result<Cart>>('/cart/items/check', payload)
+  const res = await myAxios.put<Result<Cart>>('/cart/front/jwt/items/check', payload)
   return res.data.data
 }
 
 /** 删除单项 */
 export async function deleteCartItem(skuId: number): Promise<Cart> {
-  const res = await myAxios.delete<Result<Cart>>(`/cart/items/${skuId}`)
+  const res = await myAxios.delete<Result<Cart>>(`/cart/front/jwt/items/${skuId}`)
   return res.data.data
 }
 
@@ -86,6 +85,6 @@ export async function deleteCartItems(skuIds: number[]): Promise<Cart> {
   for (const skuId of skuIds) {
     params.append('skuIds', String(skuId))
   }
-  const res = await myAxios.delete<Result<Cart>>('/cart/items', { params })
+  const res = await myAxios.delete<Result<Cart>>('/cart/front/jwt/items', { params })
   return res.data.data
 }

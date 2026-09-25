@@ -3,7 +3,7 @@
  *
  * 对应后端 `common/vo/MemberResponseVo.java`，两个地方会用到：
  *   - 登录成功时的 `LoginResult.user`
- *   - `GET /api/auth/user/info` 的 `data`
+ *   - `GET /api/auth/front/jwt/user/info` 的 `data`
  *
  * ⚠️ 后端标了 `@JsonIgnore` 的字段**不会**出现在响应里，所以这里不声明：
  *   - `password`    BCrypt 哈希

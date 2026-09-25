@@ -1,8 +1,5 @@
 /**
- * 媒体文件接口（third-party）。
- *
- * 改造后是**服务端直传**：调用方只提交文件，key 由服务端生成，拿回一个永久地址。
- * 改造前是 7 个预签名端点，前端拿到预签名 URL 直接存库，7 天后全站图片 403。
+ * 媒体文件接口（third-party）。服务端直传：调用方只提交文件，key 由服务端生成，拿回一个永久地址。
  *
  * ⚠️ 上传成功只是把文件放进了 MinIO，**不等于业务已经保存**。调用方要把返回的 url
  *    写进表单再提交业务接口；用户传了却放弃保存的话，那个文件就是孤儿。
@@ -30,6 +27,6 @@ export interface UploadedFile {
 export async function uploadImage(file: File): Promise<UploadedFile> {
   const data = new FormData()
   data.append('file', file)
-  const res = await myAxios.post<Result<UploadedFile>>('/thirdParty/file/upload', data)
+  const res = await myAxios.post<Result<UploadedFile>>('/thirdParty/front/jwt/file/upload', data)
   return res.data.data
 }

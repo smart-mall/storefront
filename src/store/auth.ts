@@ -47,7 +47,7 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * 清空登录态。
    *
-   * 注册给请求层：token 失效（HTTP 401）时由拦截器回调，
+   * 注册给请求层：token 失效（body 的 code 是 15004 / 15005）时由拦截器回调，
    * 避免出现"localStorage 清了、store 里还留着用户"的中间状态。
    */
   function clearSession(): void {
@@ -90,7 +90,7 @@ export const useAuthStore = defineStore('auth', () => {
       member.value = await fetchCurrentMember()
       status.value = 'member'
     } catch {
-      // 401 时拦截器已经清过 localStorage，这里把 store 同步清掉；
+      // 未登录时拦截器已经清过 localStorage，这里把 store 同步清掉；
       // 其余错误（网络抖动等）同样按未登录处理，避免卡在 unknown 出不来
       clearSession()
     }
