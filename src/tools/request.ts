@@ -41,9 +41,6 @@ export const REQUEST_CONFIG = {
   // 超时时间（毫秒）
   timeout: 15_000,
 
-  // 发请求时固定带的 Content-Type（上传文件时 axios 会自动改成 multipart）
-  contentType: 'application/json',
-
   // JWT 存在 localStorage 里的 key
   tokenKey: 'user-vue:token',
 
@@ -132,9 +129,9 @@ const myAxios: AxiosInstance = axios.create({
   // 带着 cookie 发请求。登录态是服务端 session（auth 服务往 HttpSession 写 LOGIN_USER），
   // 依赖 JSESSIONID cookie
   withCredentials: true,
-  headers: {
-    'Content-Type': REQUEST_CONFIG.contentType,
-  },
+  // ⚠️ 不要在这里设默认 Content-Type。axios 1.x 见到 FormData 时，只要 Content-Type 里带
+  // application/json 就会把它序列化成 JSON（文件内容直接丢），上传因此永远不是 multipart，
+  // 后端收到 {"file":{}} 并抛 MultipartException。普通对象不用兜底，axios 自己会设。
 })
 
 // 请求拦截器：有 token 就加上
