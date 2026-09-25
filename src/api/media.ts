@@ -9,23 +9,9 @@
  */
 
 import { myAxios } from '@/tools/request'
+import type { Result } from '@/type'
 
 export interface UploadedFile {
-  url: string
-  name: string
-  size: number
-}
-
-/**
- * 上传接口的响应。
- *
- * ⚠️ 数据在**顶层**，不在 `data` 里 —— 后端是 `R.ok().put("url", ...).put("name", ...)`，
- *    也就是 request.ts 里说的第三类形状（`R.ok().put("page", p)` 同款）。
- *    照 `Result<T>` 去取 `res.data.data` 会拿到 undefined。
- */
-interface UploadResponse {
-  code: number
-  msg: string
   url: string
   name: string
   size: number
@@ -44,6 +30,6 @@ interface UploadResponse {
 export async function uploadImage(file: File): Promise<UploadedFile> {
   const data = new FormData()
   data.append('file', file)
-  const res = await myAxios.post<UploadResponse>('/thirdParty/file/upload', data)
-  return { url: res.data.url, name: res.data.name, size: res.data.size }
+  const res = await myAxios.post<Result<UploadedFile>>('/thirdParty/file/upload', data)
+  return res.data.data
 }
