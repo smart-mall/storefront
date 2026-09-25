@@ -75,6 +75,36 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: '订单支付', requiresAuth: true },
   },
 
+  {
+    // 会员中心。三段内容各占一个子路由：有 URL 才能直接打开、刷新、后退，
+    // 而且 requiresAuth 写在父级上，子路由会一起继承（vue-router 会把 matched 的 meta 合并）
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/view/Profile/index.vue'),
+    redirect: { name: 'profileInfo' },
+    meta: { title: '个人中心', requiresAuth: true },
+    children: [
+      {
+        path: 'info',
+        name: 'profileInfo',
+        component: () => import('@/view/Profile/com/ProfileInfo.vue'),
+        meta: { title: '个人资料' },
+      },
+      {
+        path: 'address',
+        name: 'profileAddress',
+        component: () => import('@/view/Profile/com/AddressList.vue'),
+        meta: { title: '收货地址' },
+      },
+      {
+        path: 'loginlog',
+        name: 'profileLoginLog',
+        component: () => import('@/view/Profile/com/LoginLogList.vue'),
+        meta: { title: '登录记录' },
+      },
+    ],
+  },
+
   // 以下为预约路由，等对应功能落地时再打开（视图文件还不存在，先注释掉）
   // { path: '/coupon',   name: 'coupon',   component: () => import('@/view/Coupon/index.vue'),   meta: { title: '优惠券', requiresAuth: true } },
 

@@ -1,12 +1,16 @@
 <template>
   <div class="addr">
-    <h2 class="addr__title">收货地址</h2>
+    <div class="addr__bar">
+      <h2 class="addr__title">收货地址</h2>
+      <el-button link type="primary" :disabled="disabled" @click="emit('create')">
+        新增地址
+      </el-button>
+    </div>
 
-    <!--
-      没有地址就没法下单（submit 会返回 17004）。member 模块还没开放地址的增删改接口，
-      所以这里只能给一个明确的说明，而不是放一个点了没反应的"新增地址"按钮。
-    -->
-    <EmptyState v-if="addresses.length === 0" description="还没有收货地址，暂时无法结算" />
+    <!-- 一条地址都没有就没法下单（submit 会返回 17004），所以这里直接给新增入口 -->
+    <EmptyState v-if="addresses.length === 0" description="还没有收货地址，先新增一条才能结算">
+      <el-button type="primary" :disabled="disabled" @click="emit('create')">新增地址</el-button>
+    </EmptyState>
 
     <div v-else class="addr__list">
       <button
@@ -30,6 +34,7 @@
 </template>
 
 <script setup lang="ts">
+import { ElButton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
 import { formatAddress } from '@/tools/address'
 import type { MemberAddress } from '@/type'
@@ -41,7 +46,11 @@ defineProps<{
   disabled?: boolean
 }>()
 
-const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: number]
+  /** 用户点了新增地址。弹窗由结算页持有 —— 加完之后它还要重拉确认页重算运费 */
+  create: []
+}>()
 </script>
 
 <style scoped>
@@ -52,8 +61,15 @@ const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
   border-radius: var(--mall-radius-card);
 }
 
+.addr__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
 .addr__title {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 15px;
   font-weight: 600;
   color: var(--mall-text);

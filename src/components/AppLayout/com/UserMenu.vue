@@ -15,6 +15,7 @@
     </span>
     <template #dropdown>
       <el-dropdown-menu>
+        <el-dropdown-item command="profile">个人中心</el-dropdown-item>
         <el-dropdown-item command="orders">我的订单</el-dropdown-item>
         <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
       </el-dropdown-menu>
@@ -39,6 +40,11 @@ const router = useRouter()
 const auth = useAuthStore()
 
 function onCommand(command: string): void {
+  if (command === 'profile') {
+    void router.push({ name: 'profile' })
+    return
+  }
+
   if (command === 'orders') {
     void router.push({ name: 'order' })
     return

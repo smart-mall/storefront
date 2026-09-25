@@ -13,7 +13,12 @@
     </EmptyState>
 
     <template v-else-if="data">
-      <AddressPicker v-model="selectedAddrId" :addresses="data.addresses" :disabled="submitting" />
+      <AddressPicker
+        v-model="selectedAddrId"
+        :addresses="data.addresses"
+        :disabled="submitting"
+        @create="addressDialogVisible = true"
+      />
 
       <section class="checkout__card">
         <h2 class="checkout__title">商品清单</h2>
@@ -45,6 +50,9 @@
         @submit="onSubmit"
       />
     </template>
+
+    <!-- 地址弹窗由结算页持有：加完之后它要重拉确认页，重算默认地址和运费 -->
+    <AddressFormDialog v-model="addressDialogVisible" :address="null" @saved="onAddressSaved" />
   </div>
 </template>
 
@@ -53,6 +61,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElButton, ElInput, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
+import AddressFormDialog from '@/components/AddressFormDialog/index.vue'
 import AddressPicker from './com/AddressPicker.vue'
 import CheckoutItemRow from './com/CheckoutItemRow.vue'
 import CheckoutSummary from './com/CheckoutSummary.vue'
@@ -78,6 +87,7 @@ const freight = ref(0)
 const payType = ref<PayType>(1)
 const remarks = ref('')
 const submitting = ref(false)
+const addressDialogVisible = ref(false)
 
 /**
  * 确认页数据到手后回填选中地址和运费。
@@ -134,6 +144,17 @@ const canSubmit = computed(
 )
 
 onMounted(() => void execute())
+
+/**
+ * 新增地址成功后重拉确认页。
+ *
+ * 不把新地址直接塞进 data.addresses：新地址很可能成为默认（第一条一定是），
+ * 而默认地址一变，选中项和运费都要跟着变 —— 重拉一次比在本地推演这套规则可靠，
+ * 后端本来就是这两个数的唯一来源。
+ */
+async function onAddressSaved(): Promise<void> {
+  await execute()
+}
 
 async function onSubmit(): Promise<void> {
   const confirmData = data.value

@@ -74,9 +74,12 @@ export const useAuthStore = defineStore('auth', () => {
    * 只在 `unknown` 时真的发请求，所以路由守卫可以放心地每次导航都调它。
    * 注意昵称和头像要以这个接口的返回为准 —— JWT 里虽然也带了这两项，
    * 但用户改过头像之后 token 里还是旧值。
+   *
+   * @param force 强制重拉。换绑手机号/邮箱之后要用 —— 那两个字段不在 JWT 里，
+   *              后端不会重签 token，不强制的话 store 里还是旧的联系方式
    */
-  async function loadCurrentMember(): Promise<void> {
-    if (status.value !== 'unknown') {
+  async function loadCurrentMember(force = false): Promise<void> {
+    if (!force && status.value !== 'unknown') {
       return
     }
     if (!token.value) {
@@ -96,7 +99,6 @@ export const useAuthStore = defineStore('auth', () => {
   async function loginByAccount(form: AccountForm): Promise<void> {
     applyLogin(await accountLogin(form))
   }
-
   async function loginByEmail(form: EmailCodeForm): Promise<void> {
     applyLogin(await emailLogin(form))
   }
@@ -107,6 +109,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout(): void {
     clearSession()
+  }
+
+  /**
+   * 修改资料成功后换掉本地登录态。
+   *
+   * 后端的资料接口返回的是**新的 token**（昵称和头像在 JWT 里，不重签的话 token 里还是旧值），
+   * 形状和登录响应完全一样，所以直接复用 applyLogin 那套收尾。
+   * 不这么做的话，头部的昵称/头像要等刷新页面才会变。
+   */
+  function applyProfileUpdate(result: LoginResult): void {
+    applyLogin(result)
   }
 
   function openLoginDialog(): void {
@@ -129,6 +142,7 @@ export const useAuthStore = defineStore('auth', () => {
     loginByAccount,
     loginByEmail,
     loginByMobile,
+    applyProfileUpdate,
     logout,
     openLoginDialog,
     closeLoginDialog,

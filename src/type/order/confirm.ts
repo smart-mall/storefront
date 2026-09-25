@@ -6,27 +6,7 @@
  *   GET /api/order/front/fare?addrId= → FareResult
  */
 
-/**
- * 收货地址。
- *
- * ⚠️ 它其实属于 member 域（ums_member_receive_address），但前台目前只有结算流程会用到，
- *    所以先放在这里。member 模块补出自己的 SPA 接口（增删改、设为默认）时，
- *    应该挪到 `type/member/` 下，别让它一直挂在 order 域里。
- */
-export interface MemberAddress {
-  id: number
-  memberId: number
-  name: string
-  phone: string
-  postCode: string | null
-  province: string | null
-  city: string | null
-  region: string | null
-  detailAddress: string
-  areacode: string | null
-  /** 1 = 默认地址 */
-  defaultStatus: number | null
-}
+import type { MemberAddress } from '@/type/member'
 
 /**
  * 结算页里的一件商品。
