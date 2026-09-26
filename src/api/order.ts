@@ -51,12 +51,13 @@ export async function submitOrder(payload: SubmitOrderPayload): Promise<SubmitOr
 /**
  * 我的订单分页。
  *
- * ⚠️ 分页参数是 `pageNum` / `pageSize`，**不是** renren 那套 `page` / `limit`
- *    （后端这个前台接口特意换成了和检索一致的一套）。pageSize 上限 100。
+ * ⚠️ 分页参数是 `page` / `limit`，**不是**检索那套 `pageNum` / `pageSize` ——
+ *    后端 `OrderPageQuery` 继承 `common/query/PageQuery`，参数名固定为这两个；
+ *    传 pageNum/pageSize 会被当未知参数忽略，于是永远只拿到第一页。
  */
 export async function fetchOrderPage(params: {
-  pageNum: number
-  pageSize: number
+  page: number
+  limit: number
   /** 不传就是全部状态 */
   status?: number
 }): Promise<OrderPage> {

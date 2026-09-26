@@ -64,11 +64,12 @@ export async function changeEmail(form: ChangeContactForm): Promise<void> {
 /**
  * 我的登录记录，按时间倒序。
  *
- * ⚠️ 分页参数是 `pageNum` / `pageSize`（和后端其它前台接口一致），pageSize 上限 100。
+ * ⚠️ 分页参数是 `page` / `limit`（后端 `PageQuery` 固定的两个参数名），不是检索那套
+ *    `pageNum` / `pageSize`。
  */
 export async function fetchLoginLogPage(params: {
-  pageNum: number
-  pageSize: number
+  page: number
+  limit: number
 }): Promise<LoginLogPage> {
   const res = await myAxios.get<Result<LoginLogPage>>('/member/front/jwt/memberloginlog/mine', {
     params,

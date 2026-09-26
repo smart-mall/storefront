@@ -8,13 +8,13 @@
       <el-button type="primary" @click="execute">重新加载</el-button>
     </EmptyState>
 
-    <EmptyState v-else-if="!page || page.list.length === 0" description="还没有订单">
+    <EmptyState v-else-if="!page || page.rows.length === 0" description="还没有订单">
       <el-button type="primary" @click="router.push({ name: 'home' })">去逛逛</el-button>
     </EmptyState>
 
     <template v-else>
       <OrderCard
-        v-for="order in page.list"
+        v-for="order in page.rows"
         :key="order.orderSn"
         :order="order"
         :busy="busy"
@@ -25,7 +25,7 @@
       <AppPagination
         v-model:page-size="pageSize"
         :page-num="pageNum"
-        :total="page.totalCount"
+        :total="page.total"
         @update:page-num="onPageChange"
       />
     </template>
@@ -71,7 +71,7 @@ const {
   loading,
   error,
   execute,
-} = useAsyncData(() => fetchOrderPage({ pageNum: pageNum.value, pageSize: pageSize.value }))
+} = useAsyncData(() => fetchOrderPage({ page: pageNum.value, limit: pageSize.value }))
 
 // 每页条数变了要回到第一页，否则可能停在一个不存在的页码上（改 URL 比直接 execute 多一次
 // 跳转，但页码是 URL 驱动的，不这么写就会出现"URL 写着第 5 页、实际显示第 1 页"）

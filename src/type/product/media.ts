@@ -23,10 +23,7 @@ export interface SpuDescription {
   /**
    * 商品介绍。
    *
-   * ⚠️ 字段名就是 `decript`（少一个 s），建表时就写错了，后端实体跟着表走，
-   *    前端必须照抄这个拼写，写成 description 拿到的是 undefined。
-   *
    * ⚠️ 内容不是富文本，是**逗号分隔的图片地址**，渲染时要自己 split(',')。
    */
-  decript: string | null
+  description: string | null
 }

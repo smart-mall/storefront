@@ -92,28 +92,24 @@ export interface Result<T = unknown> {
   code: number
   msg: string
   data: T
-  /**
-   * 字段级错误：字段名 → 中文消息。
-   *
-   * 只有校验类失败才有（注解校验、手写校验、请求体不是合法 JSON）。判断"这是字段级错误"的
-   * 依据是**有没有这个字段**，不是 code —— 因为 JSON 解析失败是 10002，同样带它。
-   */
-  errors?: Record<string, string>
 }
 
 /**
  * 拼出给用户看的错误文案。
  *
- * 校验类失败的 msg 是固定文案（"参数格式校验失败"），具体信息在 errors 里；不拼进来的话
- * 用户只能看到一句"校验失败"，取不到原因。errors 缺失（纯业务异常）或类型不是对象
- * （旧版后端把异常文本直接塞进 errors）时退回 msg。
+ * 校验类失败的 msg 是固定文案（"参数格式校验失败"），具体信息在 data 里 —— 后端
+ * `R.error(BaseCodeEnum, data)` 把「字段名 → 中文消息」当成 data 返回，R 里没有单独的
+ * errors 字段。不拼进来的话用户只能看到一句"校验失败"，取不到原因。
+ *
+ * 业务异常时 data 是 null，所以只能按形状判断，不能按 code 判断（JSON 解析失败是 10002，
+ * 同样带明细）。
  */
 function buildErrorMessage(body: Result): string {
-  const errors = body.errors
-  if (errors && typeof errors === 'object') {
-    const messages = Object.keys(errors)
-      .map((key) => errors[key])
-      .filter(Boolean)
+  const detail = body.data
+  if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+    const messages = Object.values(detail as Record<string, unknown>).filter(
+      (value): value is string => typeof value === 'string' && value !== '',
+    )
     if (messages.length) {
       return messages.join('；')
     }

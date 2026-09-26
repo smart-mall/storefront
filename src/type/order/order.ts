@@ -73,17 +73,14 @@ export interface Order {
  * 订单列表分页。
  *
  * ⚠️ 字段名和检索结果（`SearchPage`）**不一样**，别照抄：
- *    这里是后端 `common/utils/PageUtils` 的形状（totalCount / pageSize / totalPage /
- *    currPage / list），而检索用的是 search 自己的 SearchResult
- *    （pageNum / total / totalPages / product）。两个后端模块各写各的。
+ *    这里是后端 `common/vo/PageVO` 的形状（total / rows），而检索用的是 search 自己的
+ *    SearchResult（pageNum / total / totalPages / product）。两个后端模块各写各的。
  */
 export interface OrderPage {
-  totalCount: number
-  pageSize: number
-  totalPage: number
-  /** 当前页，从 1 开始。相当于检索里的 pageNum */
-  currPage: number
-  list: Order[]
+  /** 总条数，给分页组件用 */
+  total: number
+  /** 当前页的订单。列表接口也会带上每单的 orderItemEntityList */
+  rows: Order[]
 }
 
 /**

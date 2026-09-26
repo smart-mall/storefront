@@ -9,7 +9,7 @@
         <el-button type="primary" @click="execute">重新加载</el-button>
       </EmptyState>
 
-      <EmptyState v-else-if="!page || page.list.length === 0" description="还没有登录记录" />
+      <EmptyState v-else-if="!page || page.rows.length === 0" description="还没有登录记录" />
 
       <template v-else>
         <div class="logs__head">
@@ -18,7 +18,7 @@
           <span class="logs__city">归属地</span>
         </div>
 
-        <div v-for="log in page.list" :key="log.id" class="logs__row">
+        <div v-for="log in page.rows" :key="log.id" class="logs__row">
           <span class="logs__time">{{ log.createTime }}</span>
           <span class="logs__ip">{{ log.ip || '—' }}</span>
           <span class="logs__city">{{ log.city || '—' }}</span>
@@ -27,7 +27,7 @@
         <AppPagination
           v-model:page-size="pageSize"
           :page-num="pageNum"
-          :total="page.totalCount"
+          :total="page.total"
           @update:page-num="onPageChange"
         />
       </template>
@@ -72,7 +72,7 @@ const {
   loading,
   error,
   execute,
-} = useAsyncData(() => fetchLoginLogPage({ pageNum: pageNum.value, pageSize: pageSize.value }))
+} = useAsyncData(() => fetchLoginLogPage({ page: pageNum.value, limit: pageSize.value }))
 
 // 每页条数变了要回第一页，否则可能停在一个不存在的页码上
 watch(pageSize, () => {

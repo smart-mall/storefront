@@ -35,15 +35,13 @@ export interface LoginLog {
 /**
  * 登录记录分页。
  *
- * 形状是后端 `common/utils/PageUtils`（和订单列表一样），不是检索那套 SearchResult。
+ * 形状是后端 `common/vo/PageVO`（和订单列表一样），不是检索那套 SearchResult。
  */
 export interface LoginLogPage {
-  totalCount: number
-  pageSize: number
-  totalPage: number
-  /** 当前页，从 1 开始 */
-  currPage: number
-  list: LoginLog[]
+  /** 总条数，给分页组件用 */
+  total: number
+  /** 当前页的登录记录 */
+  rows: LoginLog[]
 }
 
 /**

@@ -159,7 +159,7 @@ const breadcrumb = computed(() =>
 
 /** 商品介绍不是富文本，是逗号分隔的图片地址 */
 const descImages = computed(() =>
-  (detail.value?.desc?.decript ?? '')
+  (detail.value?.desc?.description ?? '')
     .split(',')
     .map((url) => url.trim())
     .filter((url) => url !== ''),
