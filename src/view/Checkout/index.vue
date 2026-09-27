@@ -22,7 +22,12 @@
 
       <section class="checkout__card">
         <h2 class="checkout__title">商品清单</h2>
-        <CheckoutItemRow v-for="item in data.items" :key="item.skuId" :item="item" />
+        <CheckoutItemRow
+          v-for="item in data.items"
+          :key="item.skuId"
+          :item="item"
+          :freight="fareOf(item.skuId)"
+        />
       </section>
 
       <section class="checkout__card">
@@ -40,7 +45,7 @@
       <CheckoutSummary
         v-model:pay-type="payType"
         :total-amount="data.totalAmount"
-        :freight-amount="freight"
+        :freight-amount="freightAmount"
         :pay-amount="payAmount"
         :count="data.count"
         :submitting="submitting"
@@ -68,7 +73,7 @@ import CheckoutSummary from './com/CheckoutSummary.vue'
 import { fetchFare, fetchOrderConfirm, submitOrder } from '@/api/order'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { useCartStore } from '@/store/cart'
-import type { PayType } from '@/type'
+import type { FareItem, FareResult, PayType } from '@/type'
 
 /**
  * 确认订单页。
@@ -83,17 +88,23 @@ const cart = useCartStore()
 const { data, loading, error, execute } = useAsyncData(() => fetchOrderConfirm())
 
 const selectedAddrId = ref<number | null>(null)
-const freight = ref(0)
+/**
+ * 换地址后拿到的金额；为 null 表示沿用确认页给的那一份。
+ *
+ * 金额一律不在这里自己相加：加价规则只在后端有一份，前端重算一旦与后端不一致，
+ * 提交时就会被判成 17002「商品价格已变动」。
+ */
+const fareResult = ref<FareResult | null>(null)
 const payType = ref<PayType>(1)
 const remarks = ref('')
 const submitting = ref(false)
 const addressDialogVisible = ref(false)
 
 /**
- * 确认页数据到手后回填选中地址和运费。
+ * 确认页数据到手后回到后端给的默认地址。
  *
- * 每次重新拉确认页都回到后端给的默认地址 —— 重新拉多半是因为令牌失效或价格变动，
- * 沿用用户之前选的非默认地址会让显示的运费和"默认地址的运费"这个初始值对不上。
+ * 每次重新拉确认页都回到默认地址 —— 重新拉多半是因为令牌失效或价格变动，
+ * 沿用用户之前选的非默认地址会和这一份金额对应的地址对不上。
  */
 watch(
   data,
@@ -101,7 +112,8 @@ watch(
     if (!value) {
       return
     }
-    freight.value = value.freightAmount
+    // 金额换回确认页那一份：上一次换地址拿到的运费已经不适用了
+    fareResult.value = null
     selectedAddrId.value = value.defaultAddrId
   },
   { immediate: true },
@@ -109,26 +121,44 @@ watch(
 
 watch(selectedAddrId, async (value, oldValue) => {
   const confirmData = data.value
-  // 初次回填（含从 null 变成默认地址）时运费已经一起回填了，不必再查一次
+  // 初次回填（含从 null 变成默认地址）时金额已经一起回填了，不必再查一次
   if (value === null || confirmData === null || value === oldValue) {
     return
   }
   if (value === confirmData.defaultAddrId) {
-    freight.value = confirmData.freightAmount
+    fareResult.value = null
     return
   }
   try {
-    freight.value = (await fetchFare(value)).fare
+    fareResult.value = await fetchFare(value)
   } catch {
     // 请求层已经弹过提示（换到别人的地址会是 17004）。
-    // 退回默认地址，别让页面停在一个和选中地址不符的运费上
+    // 退回默认地址，别让页面停在一个和选中地址不符的金额上
     selectedAddrId.value = confirmData.defaultAddrId
-    freight.value = confirmData.freightAmount
+    fareResult.value = null
   }
 })
 
-/** 应付总额 = 商品总额 + 当前地址的运费。提交时回传的就是它 */
-const payAmount = computed(() => (data.value?.totalAmount ?? 0) + freight.value)
+/** 当前生效的运费，展示用 */
+const freightAmount = computed(
+  () => fareResult.value?.freightAmount ?? data.value?.freightAmount ?? 0,
+)
+
+/** 应付总额。提交时回传的就是它，只取后端给的值 */
+const payAmount = computed(() => fareResult.value?.payAmount ?? data.value?.payAmount ?? 0)
+
+/** 按商品拆分的运费：换过地址用新拿到的那份，否则用确认页给的那份 */
+const fareItems = computed<FareItem[]>(
+  () => fareResult.value?.fareItems ?? data.value?.fareItems ?? [],
+)
+
+/** skuId -> 该商品的运费。后端给的是数组，页面按行取值，这里转一次便于逐行查 */
+const fareBySku = computed(() => new Map(fareItems.value.map((item) => [item.skuId, item.fare])))
+
+/** 取某个 SKU 的运费；后端没给这个 SKU 的明细时返回 null，行里就不显示运费 */
+function fareOf(skuId: number): number | null {
+  return fareBySku.value.get(skuId) ?? null
+}
 
 /** stocks 的 key 是字符串（后端 Map<Long,Boolean>），必须 String(skuId) 取 */
 const outOfStock = computed(() => {

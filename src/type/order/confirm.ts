@@ -53,17 +53,38 @@ export interface OrderConfirm {
    * ⚠️ 提交时要原样回传这个数（含运费）。只传商品总额的话后端会判"价格已变动"(17002)。
    */
   payAmount: number
+  /**
+   * 每个商品的运费明细，与 `items` 按 `skuId` 对应，供清单逐行显示。
+   *
+   * ⚠️ 不要拿它自己求和当总运费：总运费用上面的 `freightAmount`，
+   *    两边舍入方式一旦不同就会差几分钱。
+   */
+  fareItems: FareItem[]
   /** 商品总件数 */
   count: number
+}
+
+/** 单个商品的运费明细。 */
+export interface FareItem {
+  skuId: number
+  fare: number
 }
 
 /**
  * 运费查询结果。
  *
- * 换收货地址时调它重算，然后把返回的 `fare` 当成新的运费。
+ * 换收货地址时调它重算。商品清单由后端按购物车自己取，前端不传；
+ * 三个金额都由后端算定 —— 前端不要自己按「商品总额 + 运费」重算，
+ * 加价规则一改就会与后端算出两个数，提交时被判成 17002。
  * 后端会校验地址归属，不是自己的地址返回 17004。
  */
 export interface FareResult {
-  address: MemberAddress
-  fare: number
+  /** 商品总额，不含运费 */
+  totalAmount: number
+  /** 整单运费 */
+  freightAmount: number
+  /** 应付总额 = totalAmount + freightAmount */
+  payAmount: number
+  /** 每个商品的运费明细 */
+  fareItems: FareItem[]
 }

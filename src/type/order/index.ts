@@ -5,5 +5,5 @@
  */
 
 export type { Order, OrderLine, OrderPage, OrderStatus, OrderStatusResult } from './order'
-export type { CheckoutItem, FareResult, OrderConfirm } from './confirm'
+export type { CheckoutItem, FareItem, FareResult, OrderConfirm } from './confirm'
 export type { PayResult, PayType, SubmitOrderPayload, SubmitOrderResult } from './pay'
