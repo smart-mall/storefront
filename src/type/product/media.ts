@@ -9,9 +9,11 @@
 export interface SkuImage {
   id: number
   skuId: number
+  /** 图片名，取上传时的原始文件名；历史数据可能为 null */
+  imgName?: string | null
   /** 图片地址 */
   imgUrl: string
-  /** 排序。后端不保证顺序，前端展示前要按它升序排 */
+  /** 排序。由后台拖拽图集时排定，前端展示前仍要按它升序排 */
   imgSort: number | null
   /** 是否默认图：1 = 主图，0 = 非默认 */
   defaultImg: number | null

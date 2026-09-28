@@ -31,10 +31,9 @@ const props = defineProps<{
 }>()
 
 /**
- * 按 imgSort 升序排（imgSort 可能是 null，排到最后），并去掉空 URL。
+ * 按 imgSort 升序排（null 当 0 参与比较，与值 0 并列），并去掉空 URL。
  *
- * ⚠️ 实测这批数据的 imgSort **全是 0**，等于保持后端返回的顺序 ——
- *    所以不能指望靠它把主图排到第一位，主图要看 defaultImg 标记。
+ * 顺序由后台发布商品时拖拽图集排定；imgSort 全为 0 的旧数据等于保持后端返回顺序。
  */
 const items = computed(() => {
   const sorted = [...props.images].sort((a, b) => (a.imgSort ?? 0) - (b.imgSort ?? 0))
