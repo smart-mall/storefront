@@ -22,15 +22,35 @@ import type {
   SubmitOrderResult,
 } from '@/type'
 
-/** 结算页数据：收货地址、已勾选商品、库存、防重令牌、金额 */
-export async function fetchOrderConfirm(): Promise<OrderConfirm> {
-  const res = await myAxios.get<Result<OrderConfirm>>('/order/front/jwt/confirm')
+/**
+ * 结算页数据：收货地址、已勾选商品、库存、可用券、防重令牌、金额。
+ *
+ * @param couponHistoryId 选中的券；不传或传 null 表示不用券。
+ *   ⚠️ 换券后必须重新请求本接口，用返回的 payAmount 提交 —— 抵扣额由后端算，
+ *      前端拿券面金额自己减会与提交时的校验算成两个数，被判成 17002。
+ */
+export async function fetchOrderConfirm(couponHistoryId?: number | null): Promise<OrderConfirm> {
+  const res = await myAxios.get<Result<OrderConfirm>>('/order/front/jwt/confirm', {
+    // 不用券时不能传空串：后端是 Long，空串会被当成参数绑定失败
+    params: couponHistoryId == null ? {} : { couponHistoryId },
+  })
   return res.data.data
 }
 
-/** 换收货地址时重算运费。addrId 不是自己的地址时后端返回 17004 */
-export async function fetchFare(addrId: number): Promise<FareResult> {
-  const res = await myAxios.get<Result<FareResult>>('/order/front/jwt/fare', { params: { addrId } })
+/**
+ * 影响价格的参数变了就重算结算金额。
+ *
+ * ⚠️ 它不只算运费：换地址要重算，换券也要重算。换地址时不带上当前选中的券，
+ *    拿回来的 payAmount 会退回原价（券的效果被丢掉），提交时被判成 17002。
+ *    addrId 不是自己的地址时后端返回 17004。
+ */
+export async function fetchFare(
+  addrId: number,
+  couponHistoryId?: number | null,
+): Promise<FareResult> {
+  const res = await myAxios.get<Result<FareResult>>('/order/front/jwt/fare', {
+    params: couponHistoryId == null ? { addrId } : { addrId, couponHistoryId },
+  })
   return res.data.data
 }
 

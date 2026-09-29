@@ -19,10 +19,17 @@ export interface SubmitOrderPayload {
   /**
    * 应付金额。
    *
-   * ⚠️ 必须原样回传确认页（或换地址后用 `/fare` 重算的）**含运费**的 payAmount。
+   * ⚠️ 必须原样回传确认页（或换地址/换券后用 `/fare` 重算的）**含运费、已减券**的 payAmount。
    *    后端会拿它和重新算出来的金额比对，不一致返回 17002。
    */
   payPrice: number
+  /**
+   * 使用的优惠券领取记录 ID；不用券时不传。
+   *
+   * ⚠️ 只传这个 ID，不传抵扣额：金额由后端按购物车重算，与结算页展示的同源。
+   *    传金额等于把优惠额交给客户端决定。
+   */
+  couponHistoryId?: number
   /** 订单备注，选填 */
   remarks?: string
 }

@@ -7,7 +7,7 @@
         <RouterLink to="/">首页</RouterLink>
         <RouterLink :to="{ name: 'search' }">全部商品</RouterLink>
         <RouterLink :to="{ name: 'seckill' }">秒杀</RouterLink>
-        <span class="header__nav-disabled" title="功能开发中">优惠券</span>
+        <RouterLink :to="{ name: 'coupon' }">优惠券</RouterLink>
       </nav>
 
       <div class="header__right">
@@ -93,12 +93,6 @@ const cartBadge = computed(() => (auth.isLoggedIn ? cart.countNum : 0))
 .header__nav a:hover,
 .header__nav a.router-link-exact-active {
   color: var(--mall-primary);
-}
-
-/* 还没做的入口：保持可见但不给点，避免用户点了没反应 */
-.header__nav-disabled {
-  color: var(--mall-text-weak);
-  cursor: not-allowed;
 }
 
 .header__right {

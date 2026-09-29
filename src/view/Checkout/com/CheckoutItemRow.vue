@@ -16,6 +16,9 @@
     <div class="row__amount">
       <div class="row__subtotal">¥{{ item.totalPrice.toFixed(2) }}</div>
       <div v-if="freight !== null" class="row__freight">运费 ¥{{ freight.toFixed(2) }}</div>
+      <div v-if="couponDiscount !== null" class="row__coupon">
+        优惠 −¥{{ couponDiscount.toFixed(2) }}
+      </div>
     </div>
   </div>
 </template>
@@ -33,6 +36,12 @@ const props = defineProps<{
   item: CheckoutItem
   /** 该商品的运费；后端没给这个 SKU 的明细时为 null，行里不显示这一项 */
   freight: number | null
+  /**
+   * 该商品分到的优惠；券不覆盖这个商品时为 null。
+   *
+   * ⚠️ 行数不一定与运费一致：券只减适用范围内的商品，所以这里为 null 是常态，不是缺数据。
+   */
+  couponDiscount: number | null
 }>()
 
 const attrs = computed(() => props.item.skuAttrValues ?? [])
@@ -126,6 +135,13 @@ const attrs = computed(() => props.item.skuAttrValues ?? [])
 .row__freight {
   font-size: 12px;
   color: var(--mall-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 优惠用主色：它是把应付拉低的那一项，和灰色的运费不是一回事 */
+.row__coupon {
+  font-size: 12px;
+  color: var(--mall-primary);
   font-variant-numeric: tabular-nums;
 }
 </style>

@@ -105,8 +105,14 @@ export const routes: RouteRecordRaw[] = [
     ],
   },
 
-  // 以下为预约路由，等对应功能落地时再打开（视图文件还不存在，先注释掉）
-  // { path: '/coupon',   name: 'coupon',   component: () => import('@/view/Coupon/index.vue'),   meta: { title: '优惠券', requiresAuth: true } },
+  {
+    // 优惠券页。tab 在 query 里（`?tab=mine` 直接落到"我的券"），
+    // 状态筛选与页码是查看偏好，放页面局部 —— 一页两套列表，全塞进 URL 会变成一串读不懂的参数
+    path: '/coupon',
+    name: 'coupon',
+    component: () => import('@/view/Coupon/index.vue'),
+    meta: { title: '优惠券', requiresAuth: true },
+  },
 
   {
     // 必须放最后：通配路由会吃掉后面所有规则

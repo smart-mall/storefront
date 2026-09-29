@@ -27,8 +27,15 @@
           :key="item.skuId"
           :item="item"
           :freight="fareOf(item.skuId)"
+          :coupon-discount="couponOf(item.skuId)"
         />
       </section>
+
+      <CouponPicker
+        v-model="selectedCouponId"
+        :coupons="data.availableCoupons"
+        :disabled="submitting"
+      />
 
       <section class="checkout__card">
         <h2 class="checkout__title">订单备注</h2>
@@ -46,6 +53,7 @@
         v-model:pay-type="payType"
         :total-amount="data.totalAmount"
         :freight-amount="freightAmount"
+        :coupon-amount="couponAmount"
         :pay-amount="payAmount"
         :count="data.count"
         :submitting="submitting"
@@ -70,17 +78,21 @@ import AddressFormDialog from '@/components/AddressFormDialog/index.vue'
 import AddressPicker from './com/AddressPicker.vue'
 import CheckoutItemRow from './com/CheckoutItemRow.vue'
 import CheckoutSummary from './com/CheckoutSummary.vue'
+import CouponPicker from './com/CouponPicker.vue'
 import { fetchFare, fetchOrderConfirm, submitOrder } from '@/api/order'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { useCartStore } from '@/store/cart'
-import type { FareItem, FareResult, PayType } from '@/type'
+import type { CouponItem, FareItem, FareResult, PayType } from '@/type'
 
 /**
  * 确认订单页。
  *
- * 页面持有三样东西：选中的地址、该地址的运费、支付方式。
- * 金额不自己算 —— 商品总额和默认地址的运费都来自 `/confirm`，换地址只会覆盖运费，
- * 应付总额由两者相加得出。这样最终的 payPrice 和后端 submitOrder 里的算法一致。
+ * 页面持有四样东西：选中的地址、选中的券、生效的金额、支付方式。
+ * 金额一律不自己算 —— 商品总额、运费、券的抵扣额都来自后端，地址或券一变就重新要一份。
+ * 这样最终的 payPrice 和后端 submitOrder 里的算法一致。
+ *
+ * 首次加载用 `/confirm`（它顺带把可用券列表和防重令牌一起给出来），之后任一影响价格的
+ * 参数变了都用 `/fare` 重算 —— 它更轻，且不用换掉手上的令牌。
  */
 const router = useRouter()
 const cart = useCartStore()
@@ -88,8 +100,10 @@ const cart = useCartStore()
 const { data, loading, error, execute } = useAsyncData(() => fetchOrderConfirm())
 
 const selectedAddrId = ref<number | null>(null)
+/** 选中的券；null 表示不用券 */
+const selectedCouponId = ref<number | null>(null)
 /**
- * 换地址后拿到的金额；为 null 表示沿用确认页给的那一份。
+ * 重新算出来的金额；为 null 表示沿用确认页给的那一份。
  *
  * 金额一律不在这里自己相加：加价规则只在后端有一份，前端重算一旦与后端不一致，
  * 提交时就会被判成 17002「商品价格已变动」。
@@ -112,32 +126,68 @@ watch(
     if (!value) {
       return
     }
-    // 金额换回确认页那一份：上一次换地址拿到的运费已经不适用了
+    // 金额换回确认页那一份：上一次重算拿到的已经不适用了
     fareResult.value = null
     selectedAddrId.value = value.defaultAddrId
   },
   { immediate: true },
 )
 
-watch(selectedAddrId, async (value, oldValue) => {
+/**
+ * 金额请求的序号。
+ *
+ * 地址和券都能触发重算，两个请求可能并发；只认最后发出的那一次结果，
+ * 否则先发的慢响应回来会把新金额覆盖掉 —— 那是会让用户按错价格付款的问题。
+ */
+let amountSeq = 0
+
+/**
+ * 按当前的地址与券重新要一份金额。
+ *
+ * 地址是默认地址且没用券时直接用确认页那一份，不再发请求。没有地址时直接返回：
+ * `/fare` 必须带 addrId，而这时页面本来就不可提交。
+ */
+async function refreshAmounts(): Promise<void> {
   const confirmData = data.value
-  // 初次回填（含从 null 变成默认地址）时金额已经一起回填了，不必再查一次
-  if (value === null || confirmData === null || value === oldValue) {
+  const addrId = selectedAddrId.value
+  const couponId = selectedCouponId.value
+  if (!confirmData || addrId === null) {
     return
   }
-  if (value === confirmData.defaultAddrId) {
+  if (addrId === confirmData.defaultAddrId && couponId === null) {
     fareResult.value = null
     return
   }
+
+  const seq = ++amountSeq
   try {
-    fareResult.value = await fetchFare(value)
+    const result = await fetchFare(addrId, couponId)
+    if (seq === amountSeq) {
+      fareResult.value = result
+    }
   } catch {
-    // 请求层已经弹过提示（换到别人的地址会是 17004）。
-    // 退回默认地址，别让页面停在一个和选中地址不符的金额上
+    if (seq !== amountSeq) {
+      return
+    }
+    // 请求层已经弹过提示。分不清是地址还是券的问题，就一起退回基线：
+    // 默认地址 + 不用券一定是能提交的组合，比让页面停在一个算不出来的金额上强
+    selectedCouponId.value = null
     selectedAddrId.value = confirmData.defaultAddrId
     fareResult.value = null
   }
+}
+
+watch(selectedAddrId, (value) => {
+  // 初次回填（含从 null 变成默认地址）时金额已经一起回填了，不必再查一次
+  if (value !== null) {
+    void refreshAmounts()
+  }
 })
+
+watch(selectedCouponId, () => void refreshAmounts())
+
+/** 当前生效的优惠金额，展示用。没用券时为 0 */
+const couponAmount = computed(() => fareResult.value?.couponAmount ?? data.value?.couponAmount ?? 0)
 
 /** 当前生效的运费，展示用 */
 const freightAmount = computed(
@@ -147,17 +197,37 @@ const freightAmount = computed(
 /** 应付总额。提交时回传的就是它，只取后端给的值 */
 const payAmount = computed(() => fareResult.value?.payAmount ?? data.value?.payAmount ?? 0)
 
-/** 按商品拆分的运费：换过地址用新拿到的那份，否则用确认页给的那份 */
+/** 按商品拆分的运费：重算过用新的那份，否则用确认页给的那份 */
 const fareItems = computed<FareItem[]>(
   () => fareResult.value?.fareItems ?? data.value?.fareItems ?? [],
+)
+
+/** 按商品拆分的优惠，与运费同一套取舍 */
+const couponItems = computed<CouponItem[]>(
+  () => fareResult.value?.couponItems ?? data.value?.couponItems ?? [],
 )
 
 /** skuId -> 该商品的运费。后端给的是数组，页面按行取值，这里转一次便于逐行查 */
 const fareBySku = computed(() => new Map(fareItems.value.map((item) => [item.skuId, item.fare])))
 
+/**
+ * skuId -> 该商品分到的优惠。
+ *
+ * ⚠️ 优惠明细的行数不一定和运费一样：券只减适用范围内的商品，范围外的商品不在这里。
+ *    所以按 skuId 查，查不到就是不减。
+ */
+const couponBySku = computed(
+  () => new Map(couponItems.value.map((item) => [item.skuId, item.discountAmount])),
+)
+
 /** 取某个 SKU 的运费；后端没给这个 SKU 的明细时返回 null，行里就不显示运费 */
 function fareOf(skuId: number): number | null {
   return fareBySku.value.get(skuId) ?? null
+}
+
+/** 取某个 SKU 分到的优惠；券不覆盖这个商品时返回 null */
+function couponOf(skuId: number): number | null {
+  return couponBySku.value.get(skuId) ?? null
 }
 
 /** stocks 的 key 是字符串（后端 Map<Long,Boolean>），必须 String(skuId) 取 */
@@ -200,6 +270,8 @@ async function onSubmit(): Promise<void> {
       payType: payType.value,
       orderToken: confirmData.orderToken,
       payPrice: payAmount.value,
+      // 不用券时不传这个字段；传 null 会被后端当成参数绑定失败
+      ...(selectedCouponId.value === null ? {} : { couponHistoryId: selectedCouponId.value }),
       remarks: remark === '' ? undefined : remark,
     })
     // 后端下单成功后会删掉整个购物车，本地 store 里的件数已经过期 —— 强制重拉一次，
@@ -208,7 +280,10 @@ async function onSubmit(): Promise<void> {
     await router.push({ name: 'pay', params: { orderSn: result.order.orderSn } })
   } catch {
     // 请求层已经弹过提示。这里直接重新拉确认页：最常见的失败是 17001（令牌失效）
-    // 和 17002（价格变动），两者都需要一份新的令牌和金额才能重试
+    // 和 17002（价格变动），两者都需要一份新的令牌和金额才能重试。
+    // 重拉会把选中的券清掉（确认页那一份是"不用券"的金额），这是有意的：
+    // 价格变动很可能就是这张券引起的，带着它重试只会再失败一次
+    selectedCouponId.value = null
     await execute()
   } finally {
     submitting.value = false
