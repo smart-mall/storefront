@@ -81,12 +81,13 @@ const emit = defineEmits<{
 
 /**
  * 用普通按钮而不是 el-radio：Element Plus 2.6 起 radio 的绑定属性从 `label` 换成了
- * `value`（`label` 变成显示文案），两个版本写法不兼容。这里只有二选一，
+ * `value`（`label` 变成显示文案），两个版本写法不兼容。这里只有固定几个选项，
  * 不值得为它去踩那个变更。
  */
 const PAY_OPTIONS: { value: PayType; label: string }[] = [
   { value: 1, label: '支付宝' },
   { value: 2, label: '微信' },
+  { value: 9, label: '测试支付' },
 ]
 </script>
 

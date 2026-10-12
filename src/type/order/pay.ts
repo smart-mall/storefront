@@ -7,8 +7,8 @@
  *   PUT  /api/order/front/jwt/cancel/{orderSn}
  */
 
-/** 支付方式，取值对应后端 `order/constant/PayConstant` */
-export type PayType = 1 | 2
+/** 支付方式，取值对应后端 `order/constant/PayConstant`：1 支付宝、2 微信、9 测试支付 */
+export type PayType = 1 | 2 | 9
 
 export interface SubmitOrderPayload {
   /** 收货地址 id。必须是自己的地址，否则后端返回 17004 */
@@ -51,9 +51,10 @@ export interface SubmitOrderResult {
 /**
  * 发起支付的返回。
  *
- * 两种支付方式给的东西形态完全不同，所以只有一个字段会有值：
- *   - 支付宝 → `form`，一整段 HTML 表单
- *   - 微信   → `codeUrl`，二维码内容
+ * 各渠道给的东西形态不同，所以只有一个字段会有值：
+ *   - 支付宝   → `form`，一整段 HTML 表单
+ *   - 微信     → `codeUrl`，二维码内容
+ *   - 测试支付 → `cashierUrl`，模拟支付平台的收银台地址
  */
 export interface PayResult {
   payType: PayType
@@ -65,4 +66,6 @@ export interface PayResult {
   form: string | null
   /** 微信：二维码内容（`weixin://...`） */
   codeUrl: string | null
+  /** 测试支付：模拟支付平台的收银台地址，新窗口打开 */
+  cashierUrl: string | null
 }

@@ -126,13 +126,17 @@ const address = computed(() => {
   ])
 })
 
-/** 与结算页同样的理由：EP 2.6 起 radio 的绑定属性变了，二选一不值得为它踩坑 */
+/** 与结算页同样的理由：EP 2.6 起 radio 的绑定属性变了，固定几个选项不值得为它踩坑 */
 const PAY_OPTIONS: { value: PayType; label: string }[] = [
   { value: 1, label: '支付宝' },
   { value: 2, label: '微信' },
+  { value: 9, label: '测试支付' },
 ]
 
-onMounted(() => void execute())
+onMounted(() => {
+  void execute()
+  notifyMockPayResult()
+})
 onUnmounted(stopPolling)
 
 async function onPay(): Promise<void> {
@@ -145,6 +149,9 @@ async function onPay(): Promise<void> {
     const result = await payOrder(current.orderSn, payType.value)
     if (result.form) {
       openAlipayForm(result.form)
+      startPolling()
+    } else if (result.cashierUrl) {
+      openCashier(result.cashierUrl)
       startPolling()
     } else if (result.codeUrl) {
       codeUrl.value = result.codeUrl
@@ -168,6 +175,18 @@ function openAlipayForm(form: string): void {
   // 支付宝给的这段 HTML 里自带 submit 脚本，写进去就会被提交
   win.document.write(form)
   win.document.close()
+}
+
+/**
+ * 打开模拟支付平台的收银台。
+ *
+ * 与支付宝那条同理写成新窗口：收银台在另一个站点上，写进当前页面会把 SPA 整个导航走，
+ * 回来时这个页面的轮询也就断了。
+ */
+function openCashier(url: string): void {
+  if (!window.open(url, '_blank')) {
+    ElMessage.warning('浏览器拦截了新窗口，请允许弹出窗口后重试')
+  }
 }
 
 function startPolling(): void {
@@ -213,6 +232,31 @@ function stopPolling(): void {
 
 function refreshStatus(): void {
   void pollOnce()
+}
+
+/**
+ * 测试支付完成后，平台会把浏览器跳回本页并带上结果标记。
+ *
+ * 订单到底付没付由上面的接口查出来，这里只补一个即时提示：被拒时订单看起来毫无变化，
+ * 不提示的话用户会以为点了没反应。
+ */
+function notifyMockPayResult(): void {
+  const raw = route.query.mockPay
+  const flag = Array.isArray(raw) ? raw[0] : raw
+  if (flag !== 'ok' && flag !== 'failed') {
+    return
+  }
+
+  if (flag === 'ok') {
+    ElMessage.success('支付成功')
+  } else {
+    ElMessage.warning('支付未完成，订单仍是待付款状态')
+  }
+
+  // 去掉标记，否则每次刷新都会再提示一遍
+  const rest = { ...route.query }
+  delete rest.mockPay
+  void router.replace({ query: rest })
 }
 </script>
 
