@@ -52,3 +52,40 @@ export interface CommentPage {
   total: number
   rows: MyComment[]
 }
+
+/**
+ * 商品详情页评论区里的一条评价。
+ *
+ * 来自公开接口 `GET /product/front/comment/list`（不要求登录），昵称已在**服务端**打码，
+ * 会员 ID 与 IP 不下发；星级、内容、购买规格与时间是公开投影的全部。
+ */
+export interface PublicComment {
+  id: number
+  /** 星级评分 1~5 */
+  star: number
+  content: string
+  /** 打码后的昵称，形如 `tes***`；没有昵称时后端给「匿名会员」 */
+  memberNickName: string
+  /** 购买时的销售属性组合，后端用 ";" 连接；同款不同规格靠它区分 */
+  spuAttributes: string | null
+  createTime: string
+}
+
+/**
+ * 评价统计：总数、平均分与星级分布。
+ *
+ * 与列表同一套过滤口径（只算可见的直接评价），所以 `total` 与列表的 `total` 一致。
+ */
+export interface CommentSummary {
+  total: number
+  /** 平均星级，保留一位小数；没有评价时为 0 */
+  averageStar: number
+  /** 星级分布：key 是星级 1~5；**缺省的星级表示 0 条**，不是没有这个键 */
+  starCounts: Record<number, number>
+}
+
+/** 公开评价分页（后端 PageVO 的形状：total / rows） */
+export interface PublicCommentPage {
+  total: number
+  rows: PublicComment[]
+}

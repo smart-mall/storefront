@@ -6,7 +6,14 @@
  */
 
 import { myAxios } from '@/tools/request'
-import type { CategoryNode, CommentPage, Result, SkuDetail } from '@/type'
+import type {
+  CategoryNode,
+  CommentPage,
+  CommentSummary,
+  PublicCommentPage,
+  Result,
+  SkuDetail,
+} from '@/type'
 
 /**
  * 首页 / 全局导航用的完整三级分类树。
@@ -77,4 +84,35 @@ export async function fetchMyComments(params: {
  */
 export async function deleteComment(commentId: number): Promise<void> {
   await myAxios.delete<Result<null>>(`/product/front/jwt/comment/${commentId}`)
+}
+
+/**
+ * 某件商品的评价分页。
+ *
+ * 公开接口，不要求登录：商品页不登录也要能看到评价。按 **SPU** 聚合 ——
+ * 一款商品多个规格时评价聚在一起，每行用 `spuAttributes` 标明买的是哪个规格。
+ *
+ * ⚠️ 分页参数是 `page` / `limit`（后端 `PageQuery` 固定这两个名字）。
+ */
+export async function fetchSpuComments(params: {
+  spuId: number
+  page: number
+  limit: number
+}): Promise<PublicCommentPage> {
+  const res = await myAxios.get<Result<PublicCommentPage>>('/product/front/comment/list', {
+    params,
+  })
+  return res.data.data
+}
+
+/**
+ * 某件商品的评价统计：总数、平均分与星级分布。
+ *
+ * 与列表同一套过滤口径，所以 `total` 与列表的总数一致，不会出现"标题 10 条、列表 6 条"。
+ */
+export async function fetchCommentSummary(spuId: number): Promise<CommentSummary> {
+  const res = await myAxios.get<Result<CommentSummary>>('/product/front/comment/summary', {
+    params: { spuId },
+  })
+  return res.data.data
 }

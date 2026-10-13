@@ -22,12 +22,15 @@
         <p class="comment__content">{{ comment.content }}</p>
 
         <footer class="comment__foot">
-          <span class="comment__goods">
+          <RouterLink
+            class="comment__goods"
+            :to="{ name: 'item', params: { skuId: comment.skuId } }"
+          >
             {{ comment.spuName }}
             <template v-if="comment.spuAttributes">
               · {{ attrsText(comment.spuAttributes) }}
             </template>
-          </span>
+          </RouterLink>
           <el-button size="small" :disabled="busy" @click="onDelete(comment)">删除评价</el-button>
         </footer>
       </article>
@@ -44,7 +47,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ElButton, ElMessage, ElMessageBox, ElRate, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
 import AppPagination from '@/components/AppPagination/index.vue'
@@ -192,5 +195,12 @@ async function onDelete(comment: MyComment): Promise<void> {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--mall-text-secondary);
+  text-decoration: none;
+}
+
+.comment__goods:hover {
+  color: var(--mall-primary);
+  text-decoration: underline;
 }
 </style>

@@ -104,6 +104,15 @@
           <el-tab-pane label="规格参数" name="attrs">
             <AttrTable :groups="detail.groupAttrs" />
           </el-tab-pane>
+
+          <el-tab-pane :label="commentTabLabel" name="comments">
+            <!-- 懒加载：没切到这个页签就不挂载评论区，只看价格的访客不必多打一次接口 -->
+            <CommentList
+              v-if="commentsLoaded && spuIdForComments !== null"
+              :spu-id="spuIdForComments"
+            />
+            <EmptyState v-else description="切到本页签后加载评价" />
+          </el-tab-pane>
         </el-tabs>
       </div>
     </template>
@@ -117,10 +126,12 @@ import { ElButton, ElMessage, ElSkeleton, ElTabPane, ElTabs } from 'element-plus
 import EmptyState from '@/components/EmptyState/index.vue'
 import QuantityStepper from '@/components/QuantityStepper/index.vue'
 import AttrTable from './com/AttrTable.vue'
+import CommentList from './com/CommentList.vue'
 import ImageGallery from './com/ImageGallery.vue'
 import SaleAttrPicker from './com/SaleAttrPicker.vue'
-import { fetchSkuDetail } from '@/api/product'
+import { fetchCommentSummary, fetchSkuDetail } from '@/api/product'
 import { seckillKill } from '@/api/seckill'
+import type { CommentSummary } from '@/type'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { useCatalog } from '@/composables/useCatalog'
 import { useNow } from '@/composables/useNow'
@@ -167,6 +178,52 @@ const descImages = computed(() =>
 
 const activeTab = ref('desc')
 const quantity = ref(1)
+
+/* ═══════════════════ 商品评价 ═══════════════════ */
+
+/**
+ * 评论区的 SPU。
+ *
+ * 评价按 SPU 聚合而不是 SKU，所以要从商品信息里取 spuId；切规格（换 SKU）时它是同一个值，
+ * 评论区不必重新请求。
+ */
+const spuIdForComments = computed(() => detail.value?.info.spuId ?? null)
+
+const commentSummary = ref<CommentSummary | null>(null)
+
+/** 是否切到过「商品评价」页签；没切过就不挂载评论区，只看价格的访客不必多打一次接口 */
+const commentsLoaded = ref(false)
+
+/** 页签标题带评价数：统计随详情一起拿，点开页签之前就能看到有几条 */
+const commentTabLabel = computed(() =>
+  commentSummary.value && commentSummary.value.total > 0
+    ? `商品评价(${commentSummary.value.total})`
+    : '商品评价',
+)
+
+// 统计是辅助信息：拿不到就退回不带数字的标题，不让它影响商品详情本身的展示
+watch(
+  () => detail.value?.info.spuId,
+  (spuId) => {
+    if (spuId == null) {
+      commentSummary.value = null
+      return
+    }
+    void fetchCommentSummary(spuId)
+      .then((summary) => {
+        commentSummary.value = summary
+      })
+      .catch(() => {
+        commentSummary.value = null
+      })
+  },
+)
+
+watch(activeTab, (tab) => {
+  if (tab === 'comments') {
+    commentsLoaded.value = true
+  }
+})
 
 const cart = useCartStore()
 
