@@ -23,34 +23,52 @@ import type {
 } from '@/type'
 
 /**
- * 结算页数据：收货地址、已勾选商品、库存、可用券、防重令牌、金额。
+ * 结算页数据：收货地址、已勾选商品、库存、可用券、积分、防重令牌、金额。
  *
  * @param couponHistoryId 选中的券；不传或传 null 表示不用券。
  *   ⚠️ 换券后必须重新请求本接口，用返回的 payAmount 提交 —— 抵扣额由后端算，
  *      前端拿券面金额自己减会与提交时的校验算成两个数，被判成 17002。
+ * @param useIntegration 使用的积分数量；不传或传 null 表示不用积分。超上限返回 15010、超余额返回 15009。
  */
-export async function fetchOrderConfirm(couponHistoryId?: number | null): Promise<OrderConfirm> {
-  const res = await myAxios.get<Result<OrderConfirm>>('/order/front/jwt/confirm', {
-    // 不用券时不能传空串：后端是 Long，空串会被当成参数绑定失败
-    params: couponHistoryId == null ? {} : { couponHistoryId },
-  })
+export async function fetchOrderConfirm(
+  couponHistoryId?: number | null,
+  useIntegration?: number | null,
+): Promise<OrderConfirm> {
+  // 不用券/不用积分时不能传空串：后端是 Long/Integer，空串会被当成参数绑定失败
+  const params: Record<string, number> = {}
+  if (couponHistoryId != null) {
+    params.couponHistoryId = couponHistoryId
+  }
+  if (useIntegration != null) {
+    params.useIntegration = useIntegration
+  }
+
+  const res = await myAxios.get<Result<OrderConfirm>>('/order/front/jwt/confirm', { params })
   return res.data.data
 }
 
 /**
  * 影响价格的参数变了就重算结算金额。
  *
- * ⚠️ 它不只算运费：换地址要重算，换券也要重算。换地址时不带上当前选中的券，
- *    拿回来的 payAmount 会退回原价（券的效果被丢掉），提交时被判成 17002。
+ * ⚠️ 它不只算运费：换地址要重算，换券要重算，改使用的积分数也要重算。换地址时不带上当前
+ *    选中的券与积分，拿回来的 payAmount 会退回原价（两者的效果被丢掉），提交时被判成 17002。
+ *    返回的 `integrationLimit` 会跟着券变，页面的积分上限要取这一份。
  *    addrId 不是自己的地址时后端返回 17004。
  */
 export async function fetchFare(
   addrId: number,
   couponHistoryId?: number | null,
+  useIntegration?: number | null,
 ): Promise<FareResult> {
-  const res = await myAxios.get<Result<FareResult>>('/order/front/jwt/fare', {
-    params: couponHistoryId == null ? { addrId } : { addrId, couponHistoryId },
-  })
+  const params: Record<string, number> = { addrId }
+  if (couponHistoryId != null) {
+    params.couponHistoryId = couponHistoryId
+  }
+  if (useIntegration != null) {
+    params.useIntegration = useIntegration
+  }
+
+  const res = await myAxios.get<Result<FareResult>>('/order/front/jwt/fare', { params })
   return res.data.data
 }
 

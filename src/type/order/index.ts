@@ -11,6 +11,7 @@ export type {
   CouponUsable,
   FareItem,
   FareResult,
+  IntegrationItem,
   OrderConfirm,
 } from './confirm'
 export type { PayResult, PayType, SubmitOrderPayload, SubmitOrderResult } from './pay'

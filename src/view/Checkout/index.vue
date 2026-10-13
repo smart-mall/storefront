@@ -28,12 +28,20 @@
           :item="item"
           :freight="fareOf(item.skuId)"
           :coupon-discount="couponOf(item.skuId)"
+          :integration-discount="integrationOf(item.skuId)"
         />
       </section>
 
       <CouponPicker
         v-model="selectedCouponId"
         :coupons="data.availableCoupons"
+        :disabled="submitting"
+      />
+
+      <IntegrationPicker
+        v-model="useIntegration"
+        :balance="integrationBalance"
+        :limit="integrationLimit"
         :disabled="submitting"
       />
 
@@ -54,6 +62,7 @@
         :total-amount="data.totalAmount"
         :freight-amount="freightAmount"
         :coupon-amount="couponAmount"
+        :integration-amount="integrationAmount"
         :pay-amount="payAmount"
         :count="data.count"
         :submitting="submitting"
@@ -79,19 +88,20 @@ import AddressPicker from './com/AddressPicker.vue'
 import CheckoutItemRow from './com/CheckoutItemRow.vue'
 import CheckoutSummary from './com/CheckoutSummary.vue'
 import CouponPicker from './com/CouponPicker.vue'
+import IntegrationPicker from './com/IntegrationPicker.vue'
 import { fetchFare, fetchOrderConfirm, submitOrder } from '@/api/order'
 import { useAsyncData } from '@/composables/useAsyncData'
 import { useCartStore } from '@/store/cart'
-import type { CouponItem, FareItem, FareResult, PayType } from '@/type'
+import type { CouponItem, FareItem, FareResult, IntegrationItem, PayType } from '@/type'
 
 /**
  * 确认订单页。
  *
- * 页面持有四样东西：选中的地址、选中的券、生效的金额、支付方式。
- * 金额一律不自己算 —— 商品总额、运费、券的抵扣额都来自后端，地址或券一变就重新要一份。
+ * 页面持有五样东西：选中的地址、选中的券、使用的积分、生效的金额、支付方式。
+ * 金额一律不自己算 —— 商品总额、运费、券与积分的抵扣额都来自后端，前三样任一变化就重新要一份。
  * 这样最终的 payPrice 和后端 submitOrder 里的算法一致。
  *
- * 首次加载用 `/confirm`（它顺带把可用券列表和防重令牌一起给出来），之后任一影响价格的
+ * 首次加载用 `/confirm`（它顺带把可用券列表、积分上限和防重令牌一起给出来），之后任一影响价格的
  * 参数变了都用 `/fare` 重算 —— 它更轻，且不用换掉手上的令牌。
  */
 const router = useRouter()
@@ -102,6 +112,8 @@ const { data, loading, error, execute } = useAsyncData(() => fetchOrderConfirm()
 const selectedAddrId = ref<number | null>(null)
 /** 选中的券；null 表示不用券 */
 const selectedCouponId = ref<number | null>(null)
+/** 使用的积分数量；null 表示不用积分 */
+const useIntegration = ref<number | null>(null)
 /**
  * 重新算出来的金额；为 null 表示沿用确认页给的那一份。
  *
@@ -142,26 +154,27 @@ watch(
 let amountSeq = 0
 
 /**
- * 按当前的地址与券重新要一份金额。
+ * 按当前的地址、券与积分重新要一份金额。
  *
- * 地址是默认地址且没用券时直接用确认页那一份，不再发请求。没有地址时直接返回：
+ * 三样都是默认值（默认地址、不用券、不用积分）时直接用确认页那一份，不再发请求。没有地址时直接返回：
  * `/fare` 必须带 addrId，而这时页面本来就不可提交。
  */
 async function refreshAmounts(): Promise<void> {
   const confirmData = data.value
   const addrId = selectedAddrId.value
   const couponId = selectedCouponId.value
+  const points = useIntegration.value
   if (!confirmData || addrId === null) {
     return
   }
-  if (addrId === confirmData.defaultAddrId && couponId === null) {
+  if (addrId === confirmData.defaultAddrId && couponId === null && points === null) {
     fareResult.value = null
     return
   }
 
   const seq = ++amountSeq
   try {
-    const result = await fetchFare(addrId, couponId)
+    const result = await fetchFare(addrId, couponId, points)
     if (seq === amountSeq) {
       fareResult.value = result
     }
@@ -169,9 +182,10 @@ async function refreshAmounts(): Promise<void> {
     if (seq !== amountSeq) {
       return
     }
-    // 请求层已经弹过提示。分不清是地址还是券的问题，就一起退回基线：
-    // 默认地址 + 不用券一定是能提交的组合，比让页面停在一个算不出来的金额上强
+    // 请求层已经弹过提示。分不清是地址、券还是积分的问题，就一起退回基线：
+    // 默认地址 + 不用券 + 不用积分一定是能提交的组合，比让页面停在一个算不出来的金额上强
     selectedCouponId.value = null
+    useIntegration.value = null
     selectedAddrId.value = confirmData.defaultAddrId
     fareResult.value = null
   }
@@ -186,8 +200,15 @@ watch(selectedAddrId, (value) => {
 
 watch(selectedCouponId, () => void refreshAmounts())
 
+watch(useIntegration, () => void refreshAmounts())
+
 /** 当前生效的优惠金额，展示用。没用券时为 0 */
 const couponAmount = computed(() => fareResult.value?.couponAmount ?? data.value?.couponAmount ?? 0)
+
+/** 当前生效的积分抵扣额，展示用。没用积分时为 0 */
+const integrationAmount = computed(
+  () => fareResult.value?.integrationAmount ?? data.value?.integrationAmount ?? 0,
+)
 
 /** 当前生效的运费，展示用 */
 const freightAmount = computed(
@@ -207,6 +228,11 @@ const couponItems = computed<CouponItem[]>(
   () => fareResult.value?.couponItems ?? data.value?.couponItems ?? [],
 )
 
+/** 按商品拆分的积分抵扣，与运费同一套取舍 */
+const integrationItems = computed<IntegrationItem[]>(
+  () => fareResult.value?.integrationItems ?? data.value?.integrationItems ?? [],
+)
+
 /** skuId -> 该商品的运费。后端给的是数组，页面按行取值，这里转一次便于逐行查 */
 const fareBySku = computed(() => new Map(fareItems.value.map((item) => [item.skuId, item.fare])))
 
@@ -220,6 +246,28 @@ const couponBySku = computed(
   () => new Map(couponItems.value.map((item) => [item.skuId, item.discountAmount])),
 )
 
+/**
+ * skuId -> 该商品分到的积分抵扣。
+ *
+ * 与券不同，积分没有适用范围，所以每件商品都会在里面 —— 查不到就说明这次没用积分。
+ */
+const integrationBySku = computed(
+  () => new Map(integrationItems.value.map((item) => [item.skuId, item.discountAmount])),
+)
+
+/** 会员积分余额，来自后端（不是凭证里那份登录时的快照） */
+const integrationBalance = computed(() => data.value?.integration ?? 0)
+
+/**
+ * 本单最多可用的积分数，供输入框限定范围。
+ *
+ * ⚠️ 重算过就用重算回来的那一份：封顶按券后金额算，换券会让上限变小，
+ *    拿确认页的旧上限去限定范围会选出一个提交时必被拒的数量。
+ */
+const integrationLimit = computed(
+  () => fareResult.value?.integrationLimit ?? data.value?.integrationLimit ?? 0,
+)
+
 /** 取某个 SKU 的运费；后端没给这个 SKU 的明细时返回 null，行里就不显示运费 */
 function fareOf(skuId: number): number | null {
   return fareBySku.value.get(skuId) ?? null
@@ -228,6 +276,11 @@ function fareOf(skuId: number): number | null {
 /** 取某个 SKU 分到的优惠；券不覆盖这个商品时返回 null */
 function couponOf(skuId: number): number | null {
   return couponBySku.value.get(skuId) ?? null
+}
+
+/** 取某个 SKU 分到的积分抵扣；这次没用积分时返回 null，行里不显示这一项 */
+function integrationOf(skuId: number): number | null {
+  return integrationBySku.value.get(skuId) ?? null
 }
 
 /** stocks 的 key 是字符串（后端 Map<Long,Boolean>），必须 String(skuId) 取 */
@@ -270,8 +323,9 @@ async function onSubmit(): Promise<void> {
       payType: payType.value,
       orderToken: confirmData.orderToken,
       payPrice: payAmount.value,
-      // 不用券时不传这个字段；传 null 会被后端当成参数绑定失败
+      // 不用券/不用积分时不传这两个字段；传 null 会被后端当成参数绑定失败
       ...(selectedCouponId.value === null ? {} : { couponHistoryId: selectedCouponId.value }),
+      ...(useIntegration.value === null ? {} : { useIntegration: useIntegration.value }),
       remarks: remark === '' ? undefined : remark,
     })
     // 后端下单成功后会删掉整个购物车，本地 store 里的件数已经过期 —— 强制重拉一次，
@@ -281,9 +335,10 @@ async function onSubmit(): Promise<void> {
   } catch {
     // 请求层已经弹过提示。这里直接重新拉确认页：最常见的失败是 17001（令牌失效）
     // 和 17002（价格变动），两者都需要一份新的令牌和金额才能重试。
-    // 重拉会把选中的券清掉（确认页那一份是"不用券"的金额），这是有意的：
-    // 价格变动很可能就是这张券引起的，带着它重试只会再失败一次
+    // 重拉会把券与积分都清掉（确认页那一份是"都不用"的金额），这是有意的：
+    // 价格变动很可能就是它们引起的，带着重试只会再失败一次
     selectedCouponId.value = null
+    useIntegration.value = null
     await execute()
   } finally {
     submitting.value = false

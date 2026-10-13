@@ -97,6 +97,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '收货地址' },
       },
       {
+        path: 'integration',
+        name: 'profileIntegration',
+        component: () => import('@/view/Profile/com/IntegrationCenter.vue'),
+        meta: { title: '我的积分' },
+      },
+      {
         path: 'loginlog',
         name: 'profileLoginLog',
         component: () => import('@/view/Profile/com/LoginLogList.vue'),

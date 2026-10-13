@@ -19,6 +19,9 @@
       <div v-if="couponDiscount !== null" class="row__coupon">
         优惠 −¥{{ couponDiscount.toFixed(2) }}
       </div>
+      <div v-if="integrationDiscount !== null" class="row__coupon">
+        积分 −¥{{ integrationDiscount.toFixed(2) }}
+      </div>
     </div>
   </div>
 </template>
@@ -42,6 +45,8 @@ const props = defineProps<{
    * ⚠️ 行数不一定与运费一致：券只减适用范围内的商品，所以这里为 null 是常态，不是缺数据。
    */
   couponDiscount: number | null
+  /** 该商品分到的积分抵扣；这次没用积分时为 null，行里不显示这一项 */
+  integrationDiscount: number | null
 }>()
 
 const attrs = computed(() => props.item.skuAttrValues ?? [])

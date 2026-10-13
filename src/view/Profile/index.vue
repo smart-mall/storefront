@@ -45,6 +45,7 @@ const auth = useAuthStore()
 const NAV = [
   { name: 'profileInfo', label: '个人资料' },
   { name: 'profileAddress', label: '收货地址' },
+  { name: 'profileIntegration', label: '我的积分' },
   { name: 'profileLoginLog', label: '登录记录' },
 ] as const
 

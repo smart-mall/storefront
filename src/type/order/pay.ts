@@ -19,8 +19,8 @@ export interface SubmitOrderPayload {
   /**
    * 应付金额。
    *
-   * ⚠️ 必须原样回传确认页（或换地址/换券后用 `/fare` 重算的）**含运费、已减券**的 payAmount。
-   *    后端会拿它和重新算出来的金额比对，不一致返回 17002。
+   * ⚠️ 必须原样回传确认页（或换地址/换券/改积分后用 `/fare` 重算的）**含运费、已减券与积分**的
+   *    payAmount。后端会拿它和重新算出来的金额比对，不一致返回 17002。
    */
   payPrice: number
   /**
@@ -30,6 +30,14 @@ export interface SubmitOrderPayload {
    *    传金额等于把优惠额交给客户端决定。
    */
   couponHistoryId?: number
+  /**
+   * 使用的积分数量；不用积分时不传。
+   *
+   * ⚠️ 只传数量，不传抵扣额：抵扣额由后端按兑换比例算，与结算页展示的同源。
+   *    传金额等于把优惠额交给客户端决定。数量超过本单上限返回 15010、超过余额返回 15009，
+   *    后端不做静默夹取（夹取会改掉应付金额，让回传的 payPrice 对不上而落到 17002）。
+   */
+  useIntegration?: number
   /** 订单备注，选填 */
   remarks?: string
 }

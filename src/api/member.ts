@@ -15,6 +15,7 @@ import type {
   AddressSaveForm,
   AreaNode,
   ChangeContactForm,
+  IntegrationHistoryPage,
   LoginLogPage,
   LoginResult,
   MemberAddress,
@@ -117,5 +118,34 @@ export async function setDefaultAddress(id: number): Promise<void> {
  */
 export async function fetchAddressTree(): Promise<AreaNode[]> {
   const res = await myAxios.get<Result<AreaNode[]>>('/thirdParty/front/address/tree')
+  return res.data.data
+}
+
+/* ═══════════════════ 积分 ═══════════════════ */
+
+/**
+ * 当前登录会员的积分余额。
+ *
+ * ⚠️ 不要用登录凭证里那份积分代替：那是登录那一刻的快照，下过单之后就不再是当前余额。
+ *    后端把积分列为空的情况归一到 0，所以拿到的永远是数字。
+ */
+export async function fetchIntegrationBalance(): Promise<number> {
+  const res = await myAxios.get<Result<number>>('/member/front/jwt/integration')
+  return res.data.data
+}
+
+/**
+ * 我的积分流水，按时间倒序。
+ *
+ * ⚠️ 分页参数是 `page` / `limit`，与后端 `PageQuery` 一致（不是检索那套 pageNum/pageSize）。
+ */
+export async function fetchIntegrationHistoryPage(params: {
+  page: number
+  limit: number
+}): Promise<IntegrationHistoryPage> {
+  const res = await myAxios.get<Result<IntegrationHistoryPage>>(
+    '/member/front/jwt/integration/history',
+    { params },
+  )
   return res.data.data
 }
