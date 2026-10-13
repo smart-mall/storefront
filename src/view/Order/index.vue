@@ -21,6 +21,7 @@
         @pay="onPay"
         @cancel="onCancel"
         @receive="onReceive"
+        @comment="onComment"
         @remove="onRemove"
       />
 
@@ -30,6 +31,8 @@
         :total="page.total"
         @update:page-num="onPageChange"
       />
+
+      <CommentDialog v-model="commentVisible" :order="commentOrder" @submitted="execute" />
     </template>
   </div>
 </template>
@@ -41,8 +44,10 @@ import { ElButton, ElMessage, ElMessageBox, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
 import AppPagination from '@/components/AppPagination/index.vue'
 import OrderCard from './com/OrderCard.vue'
+import CommentDialog from './com/CommentDialog.vue'
 import { cancelOrder, deleteOrder, fetchOrderPage, receiveOrder } from '@/api/order'
 import { useAsyncData } from '@/composables/useAsyncData'
+import type { Order } from '@/type'
 
 /**
  * 我的订单。
@@ -67,6 +72,10 @@ const pageNum = computed<number>(() => {
 
 const pageSize = ref(20)
 const busy = ref(false)
+
+/** 评价弹窗：开着的时候记住是哪张订单 */
+const commentVisible = ref(false)
+const commentOrder = ref<Order | null>(null)
 
 const {
   data: page,
@@ -141,6 +150,17 @@ async function onReceive(orderSn: string): Promise<void> {
   } finally {
     busy.value = false
   }
+}
+
+/**
+ * 打开评价弹窗。
+ *
+ * 只把订单交给弹窗，不在这里筛"哪些商品还没评过"：已评状态在服务端，前端猜不准，
+ * 猜错就会凭空藏掉一个该有的入口；重复提交由后端返回 11203，请求层会弹提示。
+ */
+function onComment(order: Order): void {
+  commentOrder.value = order
+  commentVisible.value = true
 }
 
 /**

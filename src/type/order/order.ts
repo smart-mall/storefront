@@ -13,6 +13,8 @@
 
 /** 订单项，对应 oms_order_item */
 export interface OrderLine {
+  /** 订单项主键。提交评价时按它定位来源，后端靠它认「这一项评过没有」 */
+  id: number
   skuId: number
   /** 商品名（下单那一刻的快照，不是当前商品名） */
   skuName: string

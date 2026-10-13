@@ -32,3 +32,23 @@ export async function fetchSkuDetail(skuId: number): Promise<SkuDetail> {
   const res = await myAxios.get<Result<SkuDetail>>(`/product/front/item/${skuId}`)
   return res.data.data
 }
+
+/**
+ * 提交商品评价。
+ *
+ * 一次提交对应一张订单里的一件商品：`orderItemId` 是订单项主键，服务端拿它去订单服务核对
+ * "这一项属于你、订单已完成"，前端不要自己判断能不能评。
+ *
+ * 失败会抛 Error（请求层已经弹过提示），常见 code：
+ *   11200 订单项不存在或不属于当前用户
+ *   11201 订单还没完成（没确认收货）
+ *   11203 这件商品在这张订单里已经评价过了
+ *   11204 订单服务暂时不可用，这次没有落库，稍后可以重试
+ */
+export async function submitComment(payload: {
+  orderItemId: number
+  star: number
+  content: string
+}): Promise<void> {
+  await myAxios.post<Result<null>>('/product/front/jwt/comment', payload)
+}
