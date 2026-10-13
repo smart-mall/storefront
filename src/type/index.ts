@@ -10,6 +10,7 @@
  *   seckill/  秒杀（当前场次的商品列表，比详情页那份多一段 sku 基本信息）
  *   member/   会员（收货地址、资料与登录记录）
  *   coupon/   优惠券（券中心的可领取券、我的券）
+ *   comment/  评价（我写的评价、订单项上的评价摘要）
  *
  * 后端统一响应结构 `Result<T>` 不在这里重新定义 —— 它属于请求层，
  * 已经在 `@/tools/request` 里声明，这里只做再导出，保证全项目只有一处定义。
@@ -25,3 +26,4 @@ export type * from './order'
 export type * from './seckill'
 export type * from './member'
 export type * from './coupon'
+export type * from './comment'

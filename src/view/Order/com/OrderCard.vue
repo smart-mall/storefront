@@ -35,8 +35,8 @@
       </span>
 
       <!--
-        待付款有取消与支付，已发货有确认收货，已完成可以评价，已完成与已取消可以删除
-        （删除只是从自己的列表里移除，订单数据仍保留在后台）。
+        待付款有取消与支付，已发货有确认收货，已完成可以评价（这一单的商品都评过时改成"查看评论"），
+        已完成与已取消可以删除（删除只是从自己的列表里移除，订单数据仍保留在后台）。
       -->
       <div v-if="order.status === 0" class="card__actions">
         <el-button size="small" :disabled="busy" @click="emit('cancel', order.orderSn)">
@@ -64,7 +64,7 @@
           :disabled="busy"
           @click="emit('comment', order)"
         >
-          评价
+          {{ allCommented ? '查看评论' : '评价' }}
         </el-button>
         <el-button size="small" :disabled="busy" @click="emit('remove', order.orderSn)">
           删除订单
@@ -116,6 +116,18 @@ const address = computed(() =>
 function attrsText(value: string): string {
   return value.split(';').join(' / ')
 }
+
+/**
+ * 这一单的商品是不是都评过了。
+ *
+ * 评价是按订单项记的，所以判据是"还有没有没评的项"：全评完才显示「查看评论」；
+ * 一单多品、只评了一部分时仍然显示「评价」—— 藏起入口会让剩下那件商品再也评不了。
+ */
+const allCommented = computed(
+  () =>
+    props.order.orderItemEntityList.length > 0 &&
+    props.order.orderItemEntityList.every((line) => !!line.comment),
+)
 </script>
 
 <style scoped>

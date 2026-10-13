@@ -6,7 +6,7 @@
  */
 
 import { myAxios } from '@/tools/request'
-import type { CategoryNode, Result, SkuDetail } from '@/type'
+import type { CategoryNode, CommentPage, Result, SkuDetail } from '@/type'
 
 /**
  * 首页 / 全局导航用的完整三级分类树。
@@ -51,4 +51,30 @@ export async function submitComment(payload: {
   content: string
 }): Promise<void> {
   await myAxios.post<Result<null>>('/product/front/jwt/comment', payload)
+}
+
+/**
+ * 我的评价分页。
+ *
+ * 只返回自己写的评价，按评价时间倒序；归属由服务端按会员判断，前端不需要传会员。
+ *
+ * ⚠️ 分页参数是 `page` / `limit`（后端 `PageQuery` 固定这两个名字），
+ *    与检索那套 `pageNum` / `pageSize` 不是一回事。
+ */
+export async function fetchMyComments(params: {
+  page: number
+  limit: number
+}): Promise<CommentPage> {
+  const res = await myAxios.get<Result<CommentPage>>('/product/front/jwt/comment/my', { params })
+  return res.data.data
+}
+
+/**
+ * 删除我的一条评价。
+ *
+ * 归属由服务端判断：评价不存在、或不是自己写的，都返回 11205（请求层已经弹过提示）。
+ * 删除后这一项可以重新评价 —— 唯一索引不再被占用。
+ */
+export async function deleteComment(commentId: number): Promise<void> {
+  await myAxios.delete<Result<null>>(`/product/front/jwt/comment/${commentId}`)
 }

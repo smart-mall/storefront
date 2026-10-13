@@ -115,6 +115,15 @@ export const routes: RouteRecordRaw[] = [
   },
 
   {
+    // 评论中心。页码在 query 里（pageNum），与"我的订单"同一个约定；
+    // 只列自己写的评价，所以 URL 上带不出别人的东西
+    path: '/comment',
+    name: 'comment',
+    component: () => import('@/view/Comment/index.vue'),
+    meta: { title: '评论中心', requiresAuth: true },
+  },
+
+  {
     // 必须放最后：通配路由会吃掉后面所有规则
     path: '/:pathMatch(.*)*',
     name: 'notFound',

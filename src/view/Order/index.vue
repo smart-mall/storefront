@@ -32,7 +32,11 @@
         @update:page-num="onPageChange"
       />
 
-      <CommentDialog v-model="commentVisible" :order="commentOrder" @submitted="execute" />
+      <CommentDialog
+        v-model="commentVisible"
+        :order="commentOrder"
+        @submitted="onCommentSubmitted"
+      />
     </template>
   </div>
 </template>
@@ -161,6 +165,20 @@ async function onReceive(orderSn: string): Promise<void> {
 function onComment(order: Order): void {
   commentOrder.value = order
   commentVisible.value = true
+}
+
+/**
+ * 评价提交或删除之后的收尾：重拉列表，并把弹窗指向刷新后的那张单。
+ *
+ * 不把弹窗指过去的话，它手里还是旧对象，刚评的项会继续显示成"未评价"；
+ * 找不到（比如订单刚好被删）就保持原样，弹窗里的状态由下一次打开时纠正。
+ */
+async function onCommentSubmitted(): Promise<void> {
+  await execute()
+  const fresh = page.value?.rows.find((row) => row.orderSn === commentOrder.value?.orderSn)
+  if (fresh) {
+    commentOrder.value = fresh
+  }
 }
 
 /**

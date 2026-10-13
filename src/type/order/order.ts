@@ -11,6 +11,8 @@
  *    挑着写是为了让"前端依赖了后端什么"这件事可读；后端加字段不影响这里。
  */
 
+import type { CommentBrief } from '../comment/comment'
+
 /** 订单项，对应 oms_order_item */
 export interface OrderLine {
   /** 订单项主键。提交评价时按它定位来源，后端靠它认「这一项评过没有」 */
@@ -26,6 +28,12 @@ export interface OrderLine {
   skuAttrsVals: string | null
   /** 这一项的实付（单价 × 数量 − 优惠） */
   realAmount: number
+  /**
+   * 这一项的评价摘要；为空表示还没评价。
+   *
+   * 由后端订单列表装配时向 product 批量取回（一次请求，不是逐项查）；取不到时一律当未评价处理。
+   */
+  comment?: CommentBrief | null
 }
 
 /**

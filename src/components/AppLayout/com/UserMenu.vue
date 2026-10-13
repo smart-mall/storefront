@@ -17,6 +17,7 @@
       <el-dropdown-menu>
         <el-dropdown-item command="profile">个人中心</el-dropdown-item>
         <el-dropdown-item command="orders">我的订单</el-dropdown-item>
+        <el-dropdown-item command="comments">评论中心</el-dropdown-item>
         <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
       </el-dropdown-menu>
     </template>
@@ -47,6 +48,11 @@ function onCommand(command: string): void {
 
   if (command === 'orders') {
     void router.push({ name: 'order' })
+    return
+  }
+
+  if (command === 'comments') {
+    void router.push({ name: 'comment' })
     return
   }
 
