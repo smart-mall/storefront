@@ -35,8 +35,9 @@
       </span>
 
       <!--
-        待付款有取消与支付，已发货有确认收货。已完成之后还能评价，但那个接口还没做，
-        所以不摆按钮，而不是摆一个点了报错的。
+        待付款有取消与支付，已发货有确认收货，已完成与已取消可以删除（只是从自己的列表里移除，
+        订单数据仍保留在后台）。已完成之后还能评价，但那个接口还没做，所以不摆按钮，
+        而不是摆一个点了报错的。
       -->
       <div v-if="order.status === 0" class="card__actions">
         <el-button size="small" :disabled="busy" @click="emit('cancel', order.orderSn)">
@@ -54,6 +55,11 @@
           @click="emit('receive', order.orderSn)"
         >
           确认收货
+        </el-button>
+      </div>
+      <div v-else-if="order.status === 3 || order.status === 4" class="card__actions">
+        <el-button size="small" :disabled="busy" @click="emit('remove', order.orderSn)">
+          删除订单
         </el-button>
       </div>
     </footer>
@@ -83,6 +89,7 @@ const emit = defineEmits<{
   pay: [orderSn: string]
   cancel: [orderSn: string]
   receive: [orderSn: string]
+  remove: [orderSn: string]
 }>()
 
 /** 订单表里存的是下单时的收货快照，字段名和 MemberAddress 不一样 */

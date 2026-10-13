@@ -122,3 +122,13 @@ export async function cancelOrder(orderSn: string): Promise<void> {
 export async function receiveOrder(orderSn: string): Promise<void> {
   await myAxios.put<Result<null>>(`/order/front/jwt/receive/${orderSn}`)
 }
+
+/**
+ * 删除自己的订单：只把订单标记为已删除，会员端列表不再返回它，数据本身保留。
+ *
+ * 只有已完成（3）与已取消（4）的订单能删，其余状态后端返回 17003；重复删除同一订单也是 17003。
+ * 调用方按"状态已变"处理即可 —— 重新拉一次列表就对了。
+ */
+export async function deleteOrder(orderSn: string): Promise<void> {
+  await myAxios.put<Result<null>>(`/order/front/jwt/delete/${orderSn}`)
+}

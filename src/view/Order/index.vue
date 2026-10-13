@@ -21,6 +21,7 @@
         @pay="onPay"
         @cancel="onCancel"
         @receive="onReceive"
+        @remove="onRemove"
       />
 
       <AppPagination
@@ -40,7 +41,7 @@ import { ElButton, ElMessage, ElMessageBox, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
 import AppPagination from '@/components/AppPagination/index.vue'
 import OrderCard from './com/OrderCard.vue'
-import { cancelOrder, fetchOrderPage, receiveOrder } from '@/api/order'
+import { cancelOrder, deleteOrder, fetchOrderPage, receiveOrder } from '@/api/order'
 import { useAsyncData } from '@/composables/useAsyncData'
 
 /**
@@ -136,6 +137,38 @@ async function onReceive(orderSn: string): Promise<void> {
   try {
     await receiveOrder(orderSn)
     ElMessage.success('已确认收货')
+    await execute()
+  } finally {
+    busy.value = false
+  }
+}
+
+/**
+ * 删除订单。
+ *
+ * 与取消、确认收货同一个形状。删除只是把订单从自己的列表里移除，订单数据仍保留在后台，
+ * 所以确认文案要说清这一点，避免用户以为交易记录也一起没了。
+ */
+async function onRemove(orderSn: string): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      '删除后这笔订单不再出现在你的订单列表里，订单数据仍会保留在后台。确定删除吗？',
+      '删除订单',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '再想想',
+        type: 'warning',
+      },
+    )
+  } catch {
+    // 用户点了"再想想"，什么都不做
+    return
+  }
+
+  busy.value = true
+  try {
+    await deleteOrder(orderSn)
+    ElMessage.success('订单已删除')
     await execute()
   } finally {
     busy.value = false
