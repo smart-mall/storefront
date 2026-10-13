@@ -21,6 +21,25 @@
 
         <p class="comment__content">{{ comment.content }}</p>
 
+        <ul v-if="comment.replies.length" class="replies">
+          <li v-for="reply in comment.replies" :key="reply.id" class="reply">
+            <span class="reply__name">{{ reply.memberNickName }}</span>
+            <span class="reply__content">{{ reply.content }}</span>
+            <span class="reply__time">{{ reply.createTime }}</span>
+            <el-button
+              text
+              size="small"
+              class="reply__like"
+              :class="{ 'is-liked': isLiked(reply.id) }"
+              @click="onToggleReplyLike(comment, reply)"
+            >
+              <span class="reply__like-icon">♥</span>
+              {{ isLiked(reply.id) ? '已赞' : '点赞' }}
+              <template v-if="reply.likesCount > 0">{{ reply.likesCount }}</template>
+            </el-button>
+          </li>
+        </ul>
+
         <footer class="comment__foot">
           <RouterLink
             class="comment__goods"
@@ -31,6 +50,9 @@
               · {{ attrsText(comment.spuAttributes) }}
             </template>
           </RouterLink>
+          <span v-if="comment.likesCount > 0" class="comment__likes">
+            获赞 {{ comment.likesCount }}
+          </span>
           <el-button size="small" :disabled="busy" @click="onDelete(comment)">删除评价</el-button>
         </footer>
       </article>
@@ -51,9 +73,11 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ElButton, ElMessage, ElMessageBox, ElRate, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
 import AppPagination from '@/components/AppPagination/index.vue'
-import { deleteComment, fetchMyComments } from '@/api/product'
+import { deleteComment, fetchMyComments, likeComment, unlikeComment } from '@/api/product'
+import { readLikedIds, writeLikedIds } from '@/tools/likedComments'
+import { useAuthStore } from '@/store/auth'
 import { useAsyncData } from '@/composables/useAsyncData'
-import type { MyComment } from '@/type'
+import type { CommentReply, MyComment } from '@/type'
 
 /**
  * 评论中心：当前会员自己写过的评价。
@@ -63,6 +87,9 @@ import type { MyComment } from '@/type'
  *
  * 只做查看与删除：后端没有"改评价"的入口，要改就删掉重评 —— 删除会释放该项的唯一索引，
  * 重新评价走的是同一条提交链路，不需要另开一条更新链路。
+ *
+ * 每行展示别人在这条评价下的获赞数与回复：这是会员看反馈的地方，不必回到商品页去找。
+ * 评价本身没有点赞按钮（自己不能给自己点赞），但别人的回复可以点赞。
  */
 const route = useRoute()
 const router = useRouter()
@@ -77,6 +104,11 @@ const pageNum = computed<number>(() => {
 
 const pageSize = ref(10)
 const busy = ref(false)
+
+const auth = useAuthStore()
+
+/** 本地点赞记录。后端不存谁点过，高亮与「已赞 / 点赞」文案都以它为准 */
+const likedIds = ref<Set<number>>(readLikedIds())
 
 const {
   data: page,
@@ -101,6 +133,56 @@ function onPageChange(value: number): void {
 /** 后端把销售属性用 ";" 连成一个字符串，展示时换成更易读的分隔符 */
 function attrsText(value: string): string {
   return value.split(';').join(' / ')
+}
+
+function isLiked(commentId: number): boolean {
+  return likedIds.value.has(commentId)
+}
+
+/**
+ * 用一条改动后的评价替换列表里的那一行。
+ *
+ * `useAsyncData` 用的是 shallowRef，直接改行内字段不会触发渲染，所以整页换一个新对象。
+ */
+function replaceComment(next: MyComment): void {
+  if (!page.value) {
+    return
+  }
+  page.value = {
+    ...page.value,
+    rows: page.value.rows.map((row) => (row.id === next.id ? next : row)),
+  }
+}
+
+/**
+ * 点赞或取消点赞别人在我这条评价下的回复。
+ *
+ * 自己的回复由后端拒绝（11206）：接口不下发作者身份，前端无法预先判断，所以按钮一律显示。
+ */
+async function onToggleReplyLike(comment: MyComment, reply: CommentReply): Promise<void> {
+  if (!auth.isLoggedIn) {
+    auth.openLoginDialog()
+    return
+  }
+
+  const liked = isLiked(reply.id)
+  try {
+    const likesCount = liked ? await unlikeComment(reply.id) : await likeComment(reply.id)
+    const next = new Set(likedIds.value)
+    if (liked) {
+      next.delete(reply.id)
+    } else {
+      next.add(reply.id)
+    }
+    likedIds.value = next
+    writeLikedIds(next)
+    replaceComment({
+      ...comment,
+      replies: comment.replies.map((row) => (row.id === reply.id ? { ...row, likesCount } : row)),
+    })
+  } catch {
+    // 请求层已经弹过提示，本地状态保持不变
+  }
 }
 
 /**
@@ -176,6 +258,64 @@ async function onDelete(comment: MyComment): Promise<void> {
   line-height: 1.7;
   color: var(--mall-text);
   overflow-wrap: anywhere;
+}
+
+.replies {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  list-style: none;
+  background: var(--mall-bg);
+  border-left: 2px solid var(--mall-border);
+  border-radius: 4px;
+}
+
+.reply {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mall-text-secondary);
+}
+
+.reply__name {
+  flex: none;
+  color: var(--mall-text);
+}
+
+.reply__content {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reply__time {
+  flex: none;
+  font-size: 12px;
+  color: var(--mall-text-weak);
+}
+
+.reply__like {
+  flex: none;
+  padding: 0 4px;
+  font-size: 12px;
+}
+
+.reply__like-icon {
+  margin-right: 2px;
+  color: var(--mall-text-weak);
+}
+
+.reply__like.is-liked,
+.reply__like.is-liked .reply__like-icon {
+  color: var(--mall-primary);
+}
+
+.comment__likes {
+  flex: none;
+  color: var(--mall-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .comment__foot {

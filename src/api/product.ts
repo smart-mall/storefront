@@ -9,6 +9,7 @@ import { myAxios } from '@/tools/request'
 import type {
   CategoryNode,
   CommentPage,
+  CommentReply,
   CommentSummary,
   PublicCommentPage,
   Result,
@@ -114,5 +115,50 @@ export async function fetchCommentSummary(spuId: number): Promise<CommentSummary
   const res = await myAxios.get<Result<CommentSummary>>('/product/front/comment/summary', {
     params: { spuId },
   })
+  return res.data.data
+}
+
+/**
+ * 给一条评价或回复点赞。
+ *
+ * ⚠️ `commentId` 既可以是评价 ID，也可以是回复 ID —— 两者存在同一张表里、ID 全局唯一。
+ *
+ * 不做幂等：后端只维护计数，重复调用会重复加，所以调用方必须先确定这次是"点赞"还是"取消"
+ * （前端按 localStorage 里的记录判断，见 `@/tools/likedComments`）。
+ *
+ * 失败会抛 Error（请求层已经弹过提示），常见 code：
+ *   11206 不能给自己写的评价或回复点赞
+ *   11205 这一行不存在或已不可见
+ *
+ * @returns 更新后的获赞数
+ */
+export async function likeComment(commentId: number): Promise<number> {
+  const res = await myAxios.post<Result<number>>(`/product/front/jwt/comment/${commentId}/like`)
+  return res.data.data
+}
+
+/**
+ * 取消给一条评价或回复的点赞。
+ *
+ * 校验与点赞相同，计数减一且不会减到负数；服务端不校验"之前点过没有"。
+ *
+ * @returns 更新后的获赞数
+ */
+export async function unlikeComment(commentId: number): Promise<number> {
+  const res = await myAxios.delete<Result<number>>(`/product/front/jwt/comment/${commentId}/like`)
+  return res.data.data
+}
+
+/**
+ * 在一条评价下发表回复。
+ *
+ * 回复只挂一层：`commentId` 必须是被回复的**评价**主键，对回复再回复会被后端拒绝（11205）。
+ * 回复人与昵称由服务端从登录身份里取，前端只传内容。
+ */
+export async function replyComment(commentId: number, content: string): Promise<CommentReply> {
+  const res = await myAxios.post<Result<CommentReply>>(
+    `/product/front/jwt/comment/${commentId}/reply`,
+    { content },
+  )
   return res.data.data
 }
