@@ -20,6 +20,7 @@
         :busy="busy"
         @pay="onPay"
         @cancel="onCancel"
+        @receive="onReceive"
       />
 
       <AppPagination
@@ -39,7 +40,7 @@ import { ElButton, ElMessage, ElMessageBox, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
 import AppPagination from '@/components/AppPagination/index.vue'
 import OrderCard from './com/OrderCard.vue'
-import { cancelOrder, fetchOrderPage } from '@/api/order'
+import { cancelOrder, fetchOrderPage, receiveOrder } from '@/api/order'
 import { useAsyncData } from '@/composables/useAsyncData'
 
 /**
@@ -107,6 +108,34 @@ async function onCancel(orderSn: string): Promise<void> {
   try {
     await cancelOrder(orderSn)
     ElMessage.success('订单已取消')
+    await execute()
+  } finally {
+    busy.value = false
+  }
+}
+
+/**
+ * 确认收货。
+ *
+ * 与取消同一个形状：先弹确认框、再请求、最后刷新列表。被自动确认任务抢先确认时后端返回
+ * 17003（请求层已经弹过提示），刷新后这一单会显示成已完成。
+ */
+async function onReceive(orderSn: string): Promise<void> {
+  try {
+    await ElMessageBox.confirm('确认收货后订单将变为已完成。确定已经收到了吗？', '确认收货', {
+      confirmButtonText: '确认收货',
+      cancelButtonText: '还没收到',
+      type: 'info',
+    })
+  } catch {
+    // 用户点了"还没收到"，什么都不做
+    return
+  }
+
+  busy.value = true
+  try {
+    await receiveOrder(orderSn)
+    ElMessage.success('已确认收货')
     await execute()
   } finally {
     busy.value = false

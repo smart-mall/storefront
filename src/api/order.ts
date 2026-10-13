@@ -112,3 +112,13 @@ export async function fetchOrderStatus(orderSn: string): Promise<OrderStatusResu
 export async function cancelOrder(orderSn: string): Promise<void> {
   await myAxios.put<Result<null>>(`/order/front/jwt/cancel/${orderSn}`)
 }
+
+/**
+ * 确认收货。
+ *
+ * 只有已发货的订单能确认，否则后端返回 17003；被自动确认任务抢先确认的订单也走这一分支，
+ * 调用方按"状态已变"处理即可 —— 重新拉一次列表就对了。
+ */
+export async function receiveOrder(orderSn: string): Promise<void> {
+  await myAxios.put<Result<null>>(`/order/front/jwt/receive/${orderSn}`)
+}

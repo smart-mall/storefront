@@ -35,8 +35,8 @@
       </span>
 
       <!--
-        只有待付款的订单有操作。其他状态都有对应的操作（确认收货、评价…），
-        但那几个接口这轮没做，所以先不摆按钮，而不是摆一个点了报错的。
+        待付款有取消与支付，已发货有确认收货。已完成之后还能评价，但那个接口还没做，
+        所以不摆按钮，而不是摆一个点了报错的。
       -->
       <div v-if="order.status === 0" class="card__actions">
         <el-button size="small" :disabled="busy" @click="emit('cancel', order.orderSn)">
@@ -44,6 +44,16 @@
         </el-button>
         <el-button size="small" type="primary" :disabled="busy" @click="emit('pay', order.orderSn)">
           去支付
+        </el-button>
+      </div>
+      <div v-else-if="order.status === 2" class="card__actions">
+        <el-button
+          size="small"
+          type="primary"
+          :disabled="busy"
+          @click="emit('receive', order.orderSn)"
+        >
+          确认收货
         </el-button>
       </div>
     </footer>
@@ -60,7 +70,7 @@ import type { Order } from '@/type'
 /**
  * 我的订单里的一张订单卡片。
  *
- * 只 emit 不碰接口：取消订单要弹确认框、支付要跳路由、操作完还要刷新列表，
+ * 只 emit 不碰接口：取消订单与确认收货都要弹确认框、支付要跳路由、操作完还要刷新列表，
  * 这几件事都需要页面级的状态，交给页面处理。
  */
 const props = defineProps<{
@@ -72,6 +82,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   pay: [orderSn: string]
   cancel: [orderSn: string]
+  receive: [orderSn: string]
 }>()
 
 /** 订单表里存的是下单时的收货快照，字段名和 MemberAddress 不一样 */
