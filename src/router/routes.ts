@@ -103,6 +103,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '我的积分' },
       },
       {
+        path: 'growth',
+        name: 'profileGrowth',
+        component: () => import('@/view/Profile/com/GrowthCenter.vue'),
+        meta: { title: '我的成长值' },
+      },
+      {
         path: 'loginlog',
         name: 'profileLoginLog',
         component: () => import('@/view/Profile/com/LoginLogList.vue'),

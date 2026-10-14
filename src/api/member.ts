@@ -15,6 +15,8 @@ import type {
   AddressSaveForm,
   AreaNode,
   ChangeContactForm,
+  GrowthHistoryPage,
+  GrowthSnapshot,
   IntegrationHistoryPage,
   LoginLogPage,
   LoginResult,
@@ -147,5 +149,33 @@ export async function fetchIntegrationHistoryPage(params: {
     '/member/front/jwt/integration/history',
     { params },
   )
+  return res.data.data
+}
+
+/* ═══════════════════ 成长值与等级 ═══════════════════ */
+
+/**
+ * 当前登录会员的成长值、当前等级与下一级。
+ *
+ * ⚠️ 等级不在登录凭证里，只能用这个接口的实时值；会员没有等级时等级字段为 null，
+ *    页面要按"暂无等级"显示而不是当成 0。
+ */
+export async function fetchGrowthSnapshot(): Promise<GrowthSnapshot> {
+  const res = await myAxios.get<Result<GrowthSnapshot>>('/member/front/jwt/growth')
+  return res.data.data
+}
+
+/**
+ * 我的成长值流水，按时间倒序。
+ *
+ * ⚠️ 分页参数是 `page` / `limit`，与后端 `PageQuery` 一致（不是检索那套 pageNum/pageSize）。
+ */
+export async function fetchGrowthHistoryPage(params: {
+  page: number
+  limit: number
+}): Promise<GrowthHistoryPage> {
+  const res = await myAxios.get<Result<GrowthHistoryPage>>('/member/front/jwt/growth/history', {
+    params,
+  })
   return res.data.data
 }
