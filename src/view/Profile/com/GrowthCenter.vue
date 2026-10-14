@@ -19,6 +19,21 @@
     </section>
 
     <section class="growth__card">
+      <h2 class="growth__title">我的权益</h2>
+
+      <p v-if="!snapshot" class="growth__hint">正在加载权益</p>
+
+      <ul v-else-if="benefits.length > 0" class="growth__benefits">
+        <li v-for="benefit in benefits" :key="benefit.name" class="growth__benefit">
+          <span class="growth__benefit-name">{{ benefit.name }}</span>
+          <span class="growth__benefit-desc">{{ benefit.desc }}</span>
+        </li>
+      </ul>
+
+      <p v-else class="growth__hint">当前等级暂无额外权益，继续攒成长值升级即可享有。</p>
+    </section>
+
+    <section class="growth__card">
       <h2 class="growth__title">成长值明细</h2>
 
       <el-skeleton v-if="loading && !page" :rows="5" animated />
@@ -97,6 +112,37 @@ const {
 // useAsyncData 不会自己发请求，两个数据源各自要显式触发一次。
 // 等级不随分页变，进页面拉一次就够；明细跟着页码走，交给下面那个 watch
 onMounted(() => void loadSnapshot())
+
+/**
+ * 当前等级享有的权益，一项都不享有时由页面显示一句提示。
+ *
+ * 列的每一项都由后端下发的特权字段决定，不在前端按等级名推演 —— 等级与权益都可能在后台被改，
+ * 前端拿等级名当依据就会在改配置之后继续显示旧权益。免邮门槛只在特权为 true 时有意义，两个字段一起判。
+ */
+const benefits = computed<{ name: string; desc: string }[]>(() => {
+  const data = snapshot.value
+  if (!data) {
+    return []
+  }
+
+  const list: { name: string; desc: string }[] = []
+  if (data.freeFreight) {
+    list.push({
+      name: '免运费',
+      desc:
+        data.freeFreightPoint == null
+          ? '本单免运费'
+          : `商品优惠后满 ¥${data.freeFreightPoint.toFixed(2)} 免运费`,
+    })
+  }
+  if (data.memberPricePrivilege) {
+    list.push({ name: '会员价', desc: '带会员价的商品享受会员专属价' })
+  }
+  if (data.birthdayPrivilege) {
+    list.push({ name: '生日福利', desc: '生日当天赠送优惠券' })
+  }
+  return list
+})
 
 /**
  * 离下一级还差多少。
@@ -197,6 +243,36 @@ function reloadAll(): void {
   margin: 12px 0 0;
   font-size: 13px;
   line-height: 1.6;
+  color: var(--mall-text-secondary);
+}
+
+.growth__benefits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.growth__benefit {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 13px;
+}
+
+/* 权益名做成标签，与成长值卡片上的等级标签同一套视觉 */
+.growth__benefit-name {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  font-weight: 600;
+  color: var(--mall-primary);
+  background: var(--mall-primary-soft);
+  border-radius: 999px;
+}
+
+.growth__benefit-desc {
   color: var(--mall-text-secondary);
 }
 

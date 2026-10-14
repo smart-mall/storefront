@@ -55,6 +55,13 @@ export interface OrderConfirm {
   totalAmount: number
   /** 默认收货地址对应的运费 */
   freightAmount: number
+  /**
+   * 运费是否被会员的免邮权益抵掉；为 true 时 `freightAmount` 必为 0。
+   *
+   * ⚠️ `freightAmount` 为 0 有两种来源（会员免邮 / 计费结果本来就是 0），凭金额分不出来，
+   *    要标注"会员免邮"只能看这个字段。
+   */
+  memberFreeFreight: boolean
   /** 商品促销减免额；没有命中满减或阶梯价时为 0 */
   promotionAmount: number
   /** 选中优惠券的抵扣额；没选券时为 0 */
@@ -202,6 +209,8 @@ export interface FareResult {
   totalAmount: number
   /** 整单运费 */
   freightAmount: number
+  /** 运费是否被会员的免邮权益抵掉；口径同 `OrderConfirm.memberFreeFreight` */
+  memberFreeFreight: boolean
   /** 商品促销减免额；没有命中满减或阶梯价时为 0 */
   promotionAmount: number
   /** 券的抵扣额；没用券时为 0 */

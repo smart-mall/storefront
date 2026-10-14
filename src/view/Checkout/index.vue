@@ -61,6 +61,7 @@
         v-model:pay-type="payType"
         :total-amount="data.totalAmount"
         :freight-amount="freightAmount"
+        :member-free-freight="memberFreeFreight"
         :promotion-amount="promotionAmount"
         :member-price-amount="memberPriceAmount"
         :gift-integration="giftIntegration"
@@ -217,6 +218,15 @@ const integrationAmount = computed(
 /** 当前生效的运费，展示用 */
 const freightAmount = computed(
   () => fareResult.value?.freightAmount ?? data.value?.freightAmount ?? 0,
+)
+
+/**
+ * 运费是不是被会员免邮权益抵掉的，只用于在运费行上标注。
+ *
+ * 不能拿 `freightAmount === 0` 代替：计费结果本来就是 0 时它也是 0，那样标出来是假的。
+ */
+const memberFreeFreight = computed(
+  () => fareResult.value?.memberFreeFreight ?? data.value?.memberFreeFreight ?? false,
 )
 
 /** 当前生效的商品优惠减免额，展示用。没命中满减、阶梯价或会员价时为 0 */

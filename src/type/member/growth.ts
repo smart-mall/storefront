@@ -27,6 +27,23 @@ export interface GrowthSnapshot {
   nextLevelName: string | null
   /** 下一等级的成长值门槛；已是最高等级时为 null */
   nextGrowthPoint: number | null
+  /** 当前等级是否带免邮特权；为 0、未配置或会员没有等级时都是 false */
+  freeFreight: boolean
+  /**
+   * 当前等级的免运费标准：本单商品优惠后金额达到它才免邮；未配置或会员没有等级时为 null。
+   *
+   * ⚠️ 它只在 `freeFreight` 为 true 时有意义 —— 没有免邮特权的等级不按门槛免邮，
+   *    此时页面不要拿它显示"满多少免邮"。
+   */
+  freeFreightPoint: number | null
+  /** 当前等级是否带会员价特权；只有它为 true 才享受会员价 */
+  memberPricePrivilege: boolean
+  /**
+   * 当前等级是否带生日特权；为 0、未配置或会员没有等级时都是 false。
+   *
+   * 它只说明"这一档有没有生日福利"，具体发什么券由后台配置的会员赠券与领取窗口决定。
+   */
+  birthdayPrivilege: boolean
 }
 
 /**

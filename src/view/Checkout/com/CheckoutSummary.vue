@@ -26,7 +26,10 @@
         </div>
         <div class="summary__line">
           <dt>运费</dt>
-          <dd>¥{{ freightAmount.toFixed(2) }}</dd>
+          <dd>
+            <span v-if="memberFreeFreight" class="summary__free-freight">会员免邮</span>
+            ¥{{ freightAmount.toFixed(2) }}
+          </dd>
         </div>
         <div v-if="promotionOnlyAmount > 0" class="summary__line">
           <dt>商品促销</dt>
@@ -77,6 +80,12 @@ import type { PayType } from '@/type'
 const props = defineProps<{
   totalAmount: number
   freightAmount: number
+  /**
+   * 运费是不是被会员免邮权益抵掉的，为 true 时在运费行上标"会员免邮"。
+   *
+   * 不能拿 `freightAmount === 0` 代替：计费结果本来就是 0 时它也是 0，那样标出来是假的。
+   */
+  memberFreeFreight: boolean
   /** 商品优惠减免额（满减、阶梯价与会员价）；一项都没命中时为 0，这时整行不显示 */
   promotionAmount: number
   /** 其中来自会员价的那块；为 0 时"会员价"这一行不显示 */
@@ -221,6 +230,16 @@ const PAY_OPTIONS: { value: PayType; label: string }[] = [
 /* 优惠是减项，用主色区分，与"应付"同一个色系但小一号 */
 .summary__discount {
   color: var(--mall-primary);
+}
+
+/* 会员免邮是权益标记，不是金额：小一号、加内边距做成标签，并和后面的数字留出间距 */
+.summary__free-freight {
+  margin-right: 6px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--mall-primary);
+  background: var(--mall-primary-soft);
+  border-radius: 999px;
 }
 
 /* 赠送量不是金额，用弱色，避免和应付抢注意力 */
