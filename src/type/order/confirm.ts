@@ -119,6 +119,12 @@ export interface OrderConfirm {
   giftIntegration: number
   /** 本单可得的赠送成长值，口径同上 */
   giftGrowth: number
+  /**
+   * 商品优惠里来自会员价的那部分，是 `promotionAmount` 里的一块。
+   *
+   * ⚠️ 只用它把"商品促销"与"会员价"拆成两行显示，不要拿它参与任何金额计算 —— 应付取 `payAmount`。
+   */
+  memberPriceAmount: number
   /** 商品总件数 */
   count: number
 }
@@ -222,4 +228,6 @@ export interface FareResult {
   giftIntegration: number
   /** 本单可得的赠送成长值 */
   giftGrowth: number
+  /** 商品优惠里来自会员价的那部分，是 `promotionAmount` 里的一块，只用于拆分显示 */
+  memberPriceAmount: number
 }

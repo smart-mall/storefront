@@ -28,9 +28,13 @@
           <dt>运费</dt>
           <dd>¥{{ freightAmount.toFixed(2) }}</dd>
         </div>
-        <div v-if="promotionAmount > 0" class="summary__line">
+        <div v-if="promotionOnlyAmount > 0" class="summary__line">
           <dt>商品促销</dt>
-          <dd class="summary__discount">−¥{{ promotionAmount.toFixed(2) }}</dd>
+          <dd class="summary__discount">−¥{{ promotionOnlyAmount.toFixed(2) }}</dd>
+        </div>
+        <div v-if="memberPriceAmount > 0" class="summary__line">
+          <dt>会员价</dt>
+          <dd class="summary__discount">−¥{{ memberPriceAmount.toFixed(2) }}</dd>
         </div>
         <div v-if="couponAmount > 0" class="summary__line">
           <dt>优惠券</dt>
@@ -73,8 +77,10 @@ import type { PayType } from '@/type'
 const props = defineProps<{
   totalAmount: number
   freightAmount: number
-  /** 商品促销减免额；没命中满减或阶梯价时为 0，这时整行不显示 */
+  /** 商品优惠减免额（满减、阶梯价与会员价）；一项都没命中时为 0，这时整行不显示 */
   promotionAmount: number
+  /** 其中来自会员价的那块；为 0 时"会员价"这一行不显示 */
+  memberPriceAmount: number
   /** 本单可得的赠送积分；与成长值都为 0 时这一行不显示 */
   giftIntegration: number
   /** 本单可得的赠送成长值 */
@@ -106,6 +112,15 @@ const giftText = computed(() => {
   if (props.giftIntegration <= 0 && props.giftGrowth <= 0) return ''
   return `本单可得 ${props.giftIntegration} 积分、${props.giftGrowth} 成长值`
 })
+
+/**
+ * "商品促销"那一行显示的数：后端只给含会员价的合计，这里减去会员价那块，避免同一笔钱显示两次。
+ *
+ * 只是一次展示用的减法，不参与任何金额计算 —— 应付金额取 `payAmount`。
+ */
+const promotionOnlyAmount = computed(() =>
+  Math.max(props.promotionAmount - props.memberPriceAmount, 0),
+)
 
 /**
  * 用普通按钮而不是 el-radio：Element Plus 2.6 起 radio 的绑定属性从 `label` 换成了

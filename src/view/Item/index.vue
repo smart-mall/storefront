@@ -45,6 +45,8 @@
             <span v-if="!detail.hasStock" class="item__stock">缺货</span>
           </div>
 
+          <p v-if="memberPriceText" class="item__member-price">{{ memberPriceText }}</p>
+
           <p v-if="promotionText" class="item__promotion">{{ promotionText }}</p>
 
           <p v-if="giftText" class="item__gift">{{ giftText }}</p>
@@ -288,6 +290,16 @@ const giftText = computed(() => {
   return `每件预计可得 ${integration} 积分、${growth} 成长值`
 })
 
+/**
+ * 会员价文案：报的是"最低能到多少"，不区分等级。
+ *
+ * 详情页是公开接口、没有会员身份，报不出"你的等级价"；具体按哪个等级成交要到结算页才知道。
+ */
+const memberPriceText = computed(() => {
+  const memberPriceFrom = detail.value?.memberPriceFrom ?? null
+  return memberPriceFrom === null ? '' : `会员价 ¥${memberPriceFrom.toFixed(2)} 起`
+})
+
 const phase = computed(() =>
   seckill.value ? seckillPhase(seckill.value.startTime, seckill.value.endTime, now.value) : 'ended',
 )
@@ -501,6 +513,13 @@ async function buyNow(): Promise<void> {
   margin: 0;
   font-size: 13px;
   color: var(--mall-text-secondary);
+}
+
+/* 会员价是价格上的卖点，用主色，排在促销标签之前 */
+.item__member-price {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mall-primary);
 }
 
 .item__stock {

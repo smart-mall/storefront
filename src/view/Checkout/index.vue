@@ -62,6 +62,7 @@
         :total-amount="data.totalAmount"
         :freight-amount="freightAmount"
         :promotion-amount="promotionAmount"
+        :member-price-amount="memberPriceAmount"
         :gift-integration="giftIntegration"
         :gift-growth="giftGrowth"
         :coupon-amount="couponAmount"
@@ -218,9 +219,14 @@ const freightAmount = computed(
   () => fareResult.value?.freightAmount ?? data.value?.freightAmount ?? 0,
 )
 
-/** 当前生效的商品促销减免额，展示用。没命中满减或阶梯价时为 0 */
+/** 当前生效的商品优惠减免额，展示用。没命中满减、阶梯价或会员价时为 0 */
 const promotionAmount = computed(
   () => fareResult.value?.promotionAmount ?? data.value?.promotionAmount ?? 0,
+)
+
+/** 其中来自会员价的那块；只用于把结算条上的两行拆开显示 */
+const memberPriceAmount = computed(
+  () => fareResult.value?.memberPriceAmount ?? data.value?.memberPriceAmount ?? 0,
 )
 
 /** 本单可得的赠送积分与成长值，由后端按同一份算法算好，前端只显示 */

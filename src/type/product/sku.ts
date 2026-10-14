@@ -101,7 +101,7 @@ export interface SkuDetail {
   groupAttrs: SpuAttrGroup[]
   /** 秒杀信息，该商品不参与秒杀时为 null */
   seckillSkuVo: SeckillSku | null
-  /** 商品促销规则（满减与阶梯价），两段都没配时为 null */
+  /** 商品优惠规则（满减、阶梯价与会员价），都没配时为 null */
   promotion: SkuPromotion | null
   /**
    * 按 1 件试算的赠送购物积分，由后端算好下发。
@@ -112,13 +112,21 @@ export interface SkuDetail {
   unitGiftIntegration: number
   /** 按 1 件试算的赠送成长值，口径同上 */
   unitGiftGrowth: number
+  /**
+   * 该 sku 所有等级里最低的会员价，供展示"会员价 ¥X 起"；没配过时为 null。
+   *
+   * 它不需要身份：会员价配置本身是公开的，谁都能看到"最低能到多少"；具体按哪个等级成交
+   * 要到结算页才知道（那里有会员凭证）。
+   */
+  memberPriceFrom: number | null
 }
 
 /**
- * 商品促销规则，对应 `common/to/SkuPromotionVo.java`。
+ * 商品优惠规则，对应 `common/to/SkuPromotionVo.java`。
  *
  * 后端只给规则、不给算好的减免额：能减多少取决于买几件、行金额多少，由下单时在服务端算。
  * 没配置的那一段，其字段全为 null（只有满减就阶梯那三个字段为 null，反之亦然）。
+ * `memberPrice` 是"你这个等级"的价（请求要带上等级才有），`memberPriceFrom` 是所有等级里的最低价。
  */
 export interface SkuPromotion {
   /** 满减：满多少元 */
@@ -131,4 +139,8 @@ export interface SkuPromotion {
   discount: number | null
   /** 阶梯价：折后单价；与 discount 同时有值时以它为准 */
   ladderPrice: number | null
+  /** 会员价：你这个等级能拿到的价；没传等级或这个等级没配时为 null */
+  memberPrice: number | null
+  /** 会员价：所有等级里的最低价，详情页用它显示"¥X 起"；没配过时为 null */
+  memberPriceFrom: number | null
 }
