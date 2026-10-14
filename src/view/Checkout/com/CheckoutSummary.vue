@@ -28,6 +28,10 @@
           <dt>运费</dt>
           <dd>¥{{ freightAmount.toFixed(2) }}</dd>
         </div>
+        <div v-if="promotionAmount > 0" class="summary__line">
+          <dt>商品促销</dt>
+          <dd class="summary__discount">−¥{{ promotionAmount.toFixed(2) }}</dd>
+        </div>
         <div v-if="couponAmount > 0" class="summary__line">
           <dt>优惠券</dt>
           <dd class="summary__discount">−¥{{ couponAmount.toFixed(2) }}</dd>
@@ -61,11 +65,13 @@ import type { PayType } from '@/type'
 
 /**
  * 结算页底部汇总条。纯展示 + 上抛事件：
- * 金额全部来自后端（商品总额、运费、券与积分的抵扣额），这里只负责显示和在提交时原样回传给页面。
+ * 金额全部来自后端（商品总额、运费、促销、券与积分的抵扣额），这里只负责显示和在提交时原样回传给页面。
  */
 defineProps<{
   totalAmount: number
   freightAmount: number
+  /** 商品促销减免额；没命中满减或阶梯价时为 0，这时整行不显示 */
+  promotionAmount: number
   /** 券的抵扣额；没用券时为 0，这时整行不显示 */
   couponAmount: number
   /** 积分抵扣额；没用积分时为 0，这时整行不显示 */

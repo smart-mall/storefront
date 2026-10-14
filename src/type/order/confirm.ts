@@ -55,21 +55,23 @@ export interface OrderConfirm {
   totalAmount: number
   /** 默认收货地址对应的运费 */
   freightAmount: number
+  /** 商品促销减免额；没有命中满减或阶梯价时为 0 */
+  promotionAmount: number
   /** 选中优惠券的抵扣额；没选券时为 0 */
   couponAmount: number
   /** 积分抵扣额；没用积分时为 0 */
   integrationAmount: number
   /**
-   * 应付总额 = totalAmount + freightAmount − couponAmount − integrationAmount。
+   * 应付总额 = totalAmount + freightAmount − promotionAmount − couponAmount − integrationAmount。
    *
-   * ⚠️ 提交时要原样回传这个数（含运费、已减券与积分）。只传商品总额的话后端会判"价格已变动"(17002)。
+   * ⚠️ 提交时要原样回传这个数（含运费、已减促销/券/积分）。只传商品总额的话后端会判"价格已变动"(17002)。
    */
   payAmount: number
   /**
    * 本单最多可用的积分数：封顶上限与余额取小。
    *
    * ⚠️ 为 0 表示本单用不了积分（封顶算下来不足 1 分，或余额为 0），这时整栏不显示。
-   *    封顶按"商品总额减券抵扣"算，所以**换券之后这个数会变小** —— 换券后要用
+   *    封顶按"商品总额减促销减免再减券抵扣"算，所以**换券之后这个数会变小** —— 换券后要用
    *    `/fare` 返回的新上限，别拿这里的旧值去限定输入范围。
    */
   integrationLimit: number
@@ -89,6 +91,12 @@ export interface OrderConfirm {
    *    两边舍入方式一旦不同就会差几分钱。
    */
   fareItems: FareItem[]
+  /**
+   * 每个商品的促销减免明细，与 `items` 按 `skuId` 对应。
+   *
+   * ⚠️ 只含命中满减或阶梯价的商品，没命中的不在里面。按 `skuId` 查，不要按下标对齐。
+   */
+  promotionItems: PromotionItem[]
   /**
    * 每个商品的优惠明细，与 `items` 按 `skuId` 对应。
    *
@@ -117,6 +125,13 @@ export interface FareItem {
 export interface CouponItem {
   skuId: number
   /** 该商品分到的抵扣额 */
+  discountAmount: number
+}
+
+/** 单个商品的促销减免明细。 */
+export interface PromotionItem {
+  skuId: number
+  /** 该商品命中的促销减免额 */
   discountAmount: number
 }
 
@@ -165,7 +180,7 @@ export interface CouponUsable {
  * ⚠️ 这不是"只算运费"：**任何影响价格的参数变了都要重算** —— 换收货地址、换券、改使用的积分数，
  *    带上当前选中的 `couponHistoryId` 与 `useIntegration` 再调一次，否则应付金额会退回原价，
  *    提交时被判成 17002。商品清单由后端按购物车自己取，前端不传。
- *    金额都由后端算定，前端不要自己按「商品总额 + 运费 − 券 − 积分」重算。
+ *    金额都由后端算定，前端不要自己按「商品总额 + 运费 − 促销 − 券 − 积分」重算。
  *    后端会校验地址归属，不是自己的地址返回 17004。
  */
 export interface FareResult {
@@ -173,20 +188,24 @@ export interface FareResult {
   totalAmount: number
   /** 整单运费 */
   freightAmount: number
+  /** 商品促销减免额；没有命中满减或阶梯价时为 0 */
+  promotionAmount: number
   /** 券的抵扣额；没用券时为 0 */
   couponAmount: number
   /** 积分抵扣额；没用积分时为 0 */
   integrationAmount: number
-  /** 应付总额 = totalAmount + freightAmount − couponAmount − integrationAmount */
+  /** 应付总额 = totalAmount + freightAmount − promotionAmount − couponAmount − integrationAmount */
   payAmount: number
   /**
    * 本单最多可用的积分数；为 0 表示本单用不了积分。
    *
-   * ⚠️ 换券会改变这个数（封顶按券后金额算），所以它必须跟着金额一起重算 —— 页面用它限定输入范围。
+   * ⚠️ 换券会改变这个数（封顶按促销后金额再减券算），所以它必须跟着金额一起重算 —— 页面用它限定输入范围。
    */
   integrationLimit: number
   /** 每个商品的运费明细 */
   fareItems: FareItem[]
+  /** 每个商品的促销减免明细；没命中时为空数组 */
+  promotionItems: PromotionItem[]
   /** 每个商品的优惠明细；没用券时为空数组 */
   couponItems: CouponItem[]
   /** 每个商品的积分抵扣明细；没用积分时为空数组 */

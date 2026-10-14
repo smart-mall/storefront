@@ -61,6 +61,7 @@
         v-model:pay-type="payType"
         :total-amount="data.totalAmount"
         :freight-amount="freightAmount"
+        :promotion-amount="promotionAmount"
         :coupon-amount="couponAmount"
         :integration-amount="integrationAmount"
         :pay-amount="payAmount"
@@ -213,6 +214,11 @@ const integrationAmount = computed(
 /** 当前生效的运费，展示用 */
 const freightAmount = computed(
   () => fareResult.value?.freightAmount ?? data.value?.freightAmount ?? 0,
+)
+
+/** 当前生效的商品促销减免额，展示用。没命中满减或阶梯价时为 0 */
+const promotionAmount = computed(
+  () => fareResult.value?.promotionAmount ?? data.value?.promotionAmount ?? 0,
 )
 
 /** 应付总额。提交时回传的就是它，只取后端给的值 */

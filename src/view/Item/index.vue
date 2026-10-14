@@ -45,6 +45,8 @@
             <span v-if="!detail.hasStock" class="item__stock">缺货</span>
           </div>
 
+          <p v-if="promotionText" class="item__promotion">{{ promotionText }}</p>
+
           <p v-if="seckillHint" class="item__seckill-hint">{{ seckillHint }}</p>
 
           <dl class="item__meta">
@@ -240,6 +242,37 @@ const now = useNow()
 
 /** 随商品详情一起返回的秒杀信息。不参加秒杀、或场次已结束时后端给 null */
 const seckill = computed(() => detail.value?.seckillSkuVo ?? null)
+
+/** 商品促销规则；没配过时为 null */
+const promotion = computed(() => detail.value?.promotion ?? null)
+
+/**
+ * 促销标签文案：满减与阶梯价各拼一句。
+ *
+ * 只展示规则，不算能减多少 —— 那取决于买几件、行金额是多少，由服务端在结算时算。
+ */
+const promotionText = computed(() => {
+  const rule = promotion.value
+  if (!rule) return ''
+
+  const parts: string[] = []
+  if (rule.fullPrice != null && rule.reducePrice != null) {
+    parts.push(`满 ${rule.fullPrice} 减 ${rule.reducePrice}`)
+  }
+  if (rule.fullCount != null) {
+    parts.push(
+      rule.ladderPrice != null
+        ? `满 ${rule.fullCount} 件 ¥${rule.ladderPrice}/件`
+        : `满 ${rule.fullCount} 件${discountText(rule.discount)}`,
+    )
+  }
+  return parts.join('，')
+})
+
+/** 折扣率写成"7.5 折"这种说法；没配折扣时返回空串 */
+function discountText(discount: number | null) {
+  return discount == null ? '' : `${(discount * 10).toFixed(1)} 折`
+}
 
 const phase = computed(() =>
   seckill.value ? seckillPhase(seckill.value.startTime, seckill.value.endTime, now.value) : 'ended',
@@ -437,6 +470,13 @@ async function buyNow(): Promise<void> {
 
 /* 秒杀未开始 / 已结束的一行提示 */
 .item__seckill-hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mall-primary);
+}
+
+/* 商品促销：满减与阶梯价各一句 */
+.item__promotion {
   margin: 0;
   font-size: 13px;
   color: var(--mall-primary);
