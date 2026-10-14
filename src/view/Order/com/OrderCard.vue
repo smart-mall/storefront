@@ -7,22 +7,39 @@
     </header>
 
     <div class="card__items">
-      <RouterLink
-        v-for="line in order.orderItemEntityList"
-        :key="line.skuId"
-        class="card__item"
-        :to="{ name: 'item', params: { skuId: line.skuId } }"
-      >
-        <img class="card__thumb" :src="line.skuPic" :alt="line.skuName" />
-        <div class="card__item-body">
-          <span class="card__name">{{ line.skuName }}</span>
-          <span v-if="line.skuAttrsVals" class="card__attrs">{{
-            attrsText(line.skuAttrsVals)
-          }}</span>
-        </div>
-        <span class="card__qty">¥{{ line.skuPrice.toFixed(2) }} × {{ line.skuQuantity }}</span>
-      </RouterLink>
+      <div v-for="line in order.orderItemEntityList" :key="line.skuId" class="card__row">
+        <RouterLink class="card__item" :to="{ name: 'item', params: { skuId: line.skuId } }">
+          <img class="card__thumb" :src="line.skuPic" :alt="line.skuName" />
+          <div class="card__item-body">
+            <span class="card__name">{{ line.skuName }}</span>
+            <span v-if="line.skuAttrsVals" class="card__attrs">{{
+              attrsText(line.skuAttrsVals)
+            }}</span>
+          </div>
+          <span class="card__qty">¥{{ line.skuPrice.toFixed(2) }} × {{ line.skuQuantity }}</span>
+        </RouterLink>
+        <!--
+          退货是按订单项退的，所以入口挂在商品行上而不是卡片底部 ——
+          一单三件商品可以只退其中一件，挂在底部就表达不出"退哪一件"。
+          按钮放在链接外面：`<a>` 里嵌一个 `<button>` 既不合规、点击也会顺带跳详情页。
+        -->
+        <el-button
+          v-if="line.canApplyReturn"
+          class="card__return"
+          size="small"
+          :disabled="busy"
+          @click="emit('returnItem', order, line)"
+        >
+          申请退货
+        </el-button>
+      </div>
     </div>
+
+    <!--
+      售后进度。后端把这一单的售后申请随列表一起带回来，所以这里不用再单独请求一次；
+      「退货中」时把商家的退货地址一并显示出来 —— 那是会员下一个动作要用的信息。
+    -->
+    <p v-if="afterSaleText" class="card__after-sale">{{ afterSaleText }}</p>
 
     <footer class="card__foot">
       <span class="card__receiver">
@@ -35,8 +52,9 @@
       </span>
 
       <!--
-        待付款有取消与支付，已发货有确认收货，已完成可以评价（这一单的商品都评过时改成"查看评论"），
-        已完成与已取消可以删除（删除只是从自己的列表里移除，订单数据仍保留在后台）。
+        待付款有取消与支付，已付款可以申请整单退款，已发货有确认收货，
+        已完成可以评价（这一单的商品都评过时改成"查看评论"）与退货，已完成与已取消可以删除。
+        退款与退货的入口显不显示由后端下发的布尔值说了算，前端不自己拼状态条件。
       -->
       <div v-if="order.status === 0" class="card__actions">
         <el-button size="small" :disabled="busy" @click="emit('cancel', order.orderSn)">
@@ -44,6 +62,16 @@
         </el-button>
         <el-button size="small" type="primary" :disabled="busy" @click="emit('pay', order.orderSn)">
           去支付
+        </el-button>
+      </div>
+      <div v-else-if="order.status === 1" class="card__actions">
+        <el-button
+          v-if="order.canApplyRefund"
+          size="small"
+          :disabled="busy"
+          @click="emit('refund', order)"
+        >
+          申请退款
         </el-button>
       </div>
       <div v-else-if="order.status === 2" class="card__actions">
@@ -79,13 +107,13 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ElButton } from 'element-plus'
 import { joinAddress } from '@/tools/address'
-import type { Order } from '@/type'
+import type { Order, OrderLine } from '@/type'
 
 /**
  * 我的订单里的一张订单卡片。
  *
- * 只 emit 不碰接口：取消订单与确认收货都要弹确认框、支付要跳路由、操作完还要刷新列表，
- * 这几件事都需要页面级的状态，交给页面处理。
+ * 只 emit 不碰接口：退款/退货要弹表单、取消订单与确认收货要弹确认框、支付要跳路由、
+ * 操作完还要刷新列表，这几件事都需要页面级的状态，交给页面处理。
  */
 const props = defineProps<{
   order: Order
@@ -99,6 +127,10 @@ const emit = defineEmits<{
   receive: [orderSn: string]
   /** 评价：把整张订单交给弹窗，弹窗要按订单项逐项提交 */
   comment: [order: Order]
+  /** 申请整单退款：把订单交给弹窗 */
+  refund: [order: Order]
+  /** 申请退货：退货按订单项发起，所以要把订单与那一项一起给弹窗 */
+  returnItem: [order: Order, line: OrderLine]
   remove: [orderSn: string]
 }>()
 
@@ -128,6 +160,33 @@ const allCommented = computed(
     props.order.orderItemEntityList.length > 0 &&
     props.order.orderItemEntityList.every((line) => !!line.comment),
 )
+
+/**
+ * 售后进度文案，没有售后时为空串（整行不显示）。
+ *
+ * 文案（类型与状态）都由后端填好，前端只负责拼起来；「退货中」把退货地址带上，
+ * 因为那正是会员下一步要照着寄回的地址。
+ */
+const afterSaleText = computed(() => {
+  const list = props.order.afterSaleList ?? []
+  if (list.length === 0) {
+    return ''
+  }
+
+  return list
+    .map((item) => {
+      let text = `售后：${item.typeText} · ${item.statusText}`
+      if (item.status === 1 && item.companyAddress) {
+        text += `（寄回：${item.companyAddress} 收件人 ${item.receiveMan ?? ''} ${
+          item.receivePhone ?? ''
+        }）`
+      } else if (item.status === 3 && item.handleNote) {
+        text += `（驳回理由：${item.handleNote}）`
+      }
+      return text
+    })
+    .join('；')
+})
 </script>
 
 <style scoped>
@@ -160,18 +219,30 @@ const allCommented = computed(
   flex-direction: column;
 }
 
+.card__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mall-border);
+}
+
+.card__row:last-child {
+  border-bottom: none;
+}
+
 .card__item {
+  flex: 1;
+  min-width: 0;
   display: grid;
   grid-template-columns: 56px minmax(0, 1fr) 140px;
   align-items: center;
   gap: 12px;
-  padding: 10px 0;
   text-decoration: none;
-  border-bottom: 1px solid var(--mall-border);
 }
 
-.card__item:last-child {
-  border-bottom: none;
+.card__return {
+  flex: none;
 }
 
 .card__thumb {
@@ -208,6 +279,16 @@ const allCommented = computed(
   font-size: 13px;
   color: var(--mall-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.card__after-sale {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--mall-text-secondary);
+  background: var(--mall-surface-muted, #f7f8fa);
+  border-radius: 6px;
 }
 
 .card__foot {

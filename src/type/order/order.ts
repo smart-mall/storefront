@@ -34,6 +34,13 @@ export interface OrderLine {
    * 由后端订单列表装配时向 product 批量取回（一次请求，不是逐项查）；取不到时一律当未评价处理。
    */
   comment?: CommentBrief | null
+  /**
+   * 这一项现在能不能申请退货。
+   *
+   * 由后端按「订单已完成 + 这一项没有正在进行或已完成的退货申请」算好，前端只按它决定显不显示按钮 ——
+   * 前端自己拼这两条条件，迟早会与后端的闸门分叉。
+   */
+  canApplyReturn?: boolean
 }
 
 /**
@@ -42,7 +49,7 @@ export interface OrderLine {
  * ⚠️ 只用来做类型约束和分支判断，**不要在前端再维护一份文案映射** ——
  *    后端每个订单都带了 statusText，那是显示文案的唯一来源。
  */
-export type OrderStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6
+export type OrderStatus = 0 | 1 | 2 | 3 | 4
 
 export interface Order {
   id: number
@@ -77,6 +84,76 @@ export interface Order {
 
   /** 订单项。列表接口也会带上（后端一次 IN 查询再按订单号分组，不是 N+1） */
   orderItemEntityList: OrderLine[]
+
+  /**
+   * 这一单的售后申请（整单退款与按项退货都挂在这里）。空数组表示没申请过售后。
+   *
+   * 列表与详情都会带，所以卡片上不需要再单独请求一次售后接口。
+   */
+  afterSaleList?: OrderAfterSale[]
+
+  /**
+   * 现在能不能申请整单退款。
+   *
+   * 判据在后端：订单已付款且还没发货，且没有一笔进行中的退款申请。发货之后这批货已经出库实扣，
+   * 没有可解锁的库存，那时该走退货 —— 所以这个布尔值不是"状态等于几"能推出来的。
+   */
+  canApplyRefund?: boolean
+}
+
+/** 售后类型：0 仅退款（已付款未发货，整单退钱）/ 1 退货退款（确认收货后按项寄回） */
+export type AfterSaleType = 0 | 1
+
+/**
+ * 售后状态：0 待处理 / 1 退货中（只有退货会经过这一态）/ 2 已完成 / 3 已拒绝。
+ *
+ * ⚠️ 与订单状态一样，**不要在前端维护文案**：每行都带后端填好的 statusText。
+ */
+export type AfterSaleStatus = 0 | 1 | 2 | 3
+
+/**
+ * 一条售后申请（后端 `MemberAfterSaleVo`）。
+ *
+ * 它是公开投影而不是整张 `oms_order_return_apply`：处理这项申请的管理员用户名不出给会员端。
+ */
+export interface OrderAfterSale {
+  id: number
+  orderSn: string
+  type: AfterSaleType
+  /** 类型文案，后端填好 */
+  typeText: string
+  status: AfterSaleStatus
+  /** 状态文案，后端填好 */
+  statusText: string
+  /** 退款金额：仅退款是整单实付，退货是这一项的实付 */
+  returnAmount: number
+  /** 退货的商品；仅退款不涉及具体商品，这几个字段为 null */
+  skuId: number | null
+  skuName: string | null
+  skuImg: string | null
+  skuAttrsVals: string | null
+  skuCount: number | null
+  /** 退货原因；仅退款没有原因字典，为 null，话都写在 description 里 */
+  reason: string | null
+  description: string | null
+  /** 凭证图片，逗号隔开 */
+  descPics: string | null
+  createTime: string
+  handleTime: string | null
+  /** 处理备注；被拒绝时就是驳回理由 */
+  handleNote: string | null
+  /** 商家的退货地址，审核通过后才下发，会员照着寄回 */
+  companyAddress: string | null
+  receiveMan: string | null
+  receivePhone: string | null
+  receiveTime: string | null
+  receiveNote: string | null
+}
+
+/** 退货原因选项，来自 `oms_order_return_reason`（后台可维护，前端不写死一份） */
+export interface ReturnReason {
+  id: number
+  name: string
 }
 
 /**

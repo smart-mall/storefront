@@ -18,6 +18,7 @@ import type {
   PayResult,
   PayType,
   Result,
+  ReturnReason,
   SubmitOrderPayload,
   SubmitOrderResult,
 } from '@/type'
@@ -149,4 +150,48 @@ export async function receiveOrder(orderSn: string): Promise<void> {
  */
 export async function deleteOrder(orderSn: string): Promise<void> {
   await myAxios.put<Result<null>>(`/order/front/jwt/delete/${orderSn}`)
+}
+
+/* ═══════════════════ 售后（仅退款 / 退货退款） ═══════════════════ */
+
+/**
+ * 申请整单退款（仅退款）。
+ *
+ * 只有「已付款、还没发货」的订单能申请，否则后端返回 17003；已经有一笔进行中的退款申请返回 17013。
+ * ⚠️ 提交后**不会立刻退钱**：要走后台审核，通过时才向支付平台发起退款 —— 平台回了"资金已变动"，
+ *    订单才作废、库存与券和积分才退回。
+ */
+export async function applyRefund(payload: {
+  orderSn: string
+  /** 申请说明，必填；退款没有原因字典，话都写在这里 */
+  description: string
+}): Promise<void> {
+  await myAxios.post<Result<null>>('/order/front/jwt/after-sale/refund', payload)
+}
+
+/**
+ * 申请退货退款（按订单项）。
+ *
+ * 只有「已完成」的订单、且这一项没有进行中的退货申请时才能申请（否则 17003 / 17013）。
+ * 金额按这一项的实付算，整项退 —— 不支持只退一部分数量。
+ */
+export async function applyReturn(payload: {
+  orderItemId: number
+  /** 退货原因，必填，取自退货原因字典 */
+  reason: string
+  description?: string
+  /** 凭证图片，逗号隔开；先由 uploadImage 上传拿到地址 */
+  descPics?: string
+}): Promise<void> {
+  await myAxios.post<Result<null>>('/order/front/jwt/after-sale/return', payload)
+}
+
+/**
+ * 退货原因选项。
+ *
+ * 来自 `oms_order_return_reason`，后台能维护它，所以前端不写死一份（写死等于同一份清单存在两处）。
+ */
+export async function fetchReturnReasons(): Promise<ReturnReason[]> {
+  const res = await myAxios.get<Result<ReturnReason[]>>('/order/front/jwt/after-sale/reasons')
+  return res.data.data
 }

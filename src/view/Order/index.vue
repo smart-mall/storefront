@@ -22,6 +22,8 @@
         @cancel="onCancel"
         @receive="onReceive"
         @comment="onComment"
+        @refund="onRefund"
+        @return-item="onReturnItem"
         @remove="onRemove"
       />
 
@@ -37,6 +39,15 @@
         :order="commentOrder"
         @submitted="onCommentSubmitted"
       />
+
+      <!-- 售后申请：一个弹窗管两条链，mode 决定是整单退款还是按项退货 -->
+      <AfterSaleDialog
+        v-model="afterSaleVisible"
+        :order="afterSaleOrder"
+        :line="afterSaleLine"
+        :mode="afterSaleMode"
+        @submitted="onAfterSaleSubmitted"
+      />
     </template>
   </div>
 </template>
@@ -49,9 +60,10 @@ import EmptyState from '@/components/EmptyState/index.vue'
 import AppPagination from '@/components/AppPagination/index.vue'
 import OrderCard from './com/OrderCard.vue'
 import CommentDialog from './com/CommentDialog.vue'
+import AfterSaleDialog from './com/AfterSaleDialog.vue'
 import { cancelOrder, deleteOrder, fetchOrderPage, receiveOrder } from '@/api/order'
 import { useAsyncData } from '@/composables/useAsyncData'
-import type { Order } from '@/type'
+import type { Order, OrderLine } from '@/type'
 
 /**
  * 我的订单。
@@ -80,6 +92,17 @@ const busy = ref(false)
 /** 评价弹窗：开着的时候记住是哪张订单 */
 const commentVisible = ref(false)
 const commentOrder = ref<Order | null>(null)
+
+/**
+ * 售后弹窗。
+ *
+ * 两条链共用一个弹窗组件：退款是整单的（只要订单），退货是按项的（还要那一项），
+ * 所以除了订单还要记住 line 与 mode。
+ */
+const afterSaleVisible = ref(false)
+const afterSaleMode = ref<'refund' | 'return'>('refund')
+const afterSaleOrder = ref<Order | null>(null)
+const afterSaleLine = ref<OrderLine | null>(null)
 
 const {
   data: page,
@@ -182,12 +205,41 @@ async function onCommentSubmitted(): Promise<void> {
 }
 
 /**
+ * 打开售后弹窗（整单退款）。
+ *
+ * 入口显不显示由后端的 canApplyRefund 决定，这里只负责把订单交给弹窗。
+ */
+function onRefund(order: Order): void {
+  afterSaleMode.value = 'refund'
+  afterSaleOrder.value = order
+  afterSaleLine.value = null
+  afterSaleVisible.value = true
+}
+
+/** 打开售后弹窗（按项退货）：退货是按订单项发起的，所以还要把那一项一起交给弹窗 */
+function onReturnItem(order: Order, line: OrderLine): void {
+  afterSaleMode.value = 'return'
+  afterSaleOrder.value = order
+  afterSaleLine.value = line
+  afterSaleVisible.value = true
+}
+
+/**
+ * 售后申请提交后的收尾：重拉列表。
+ *
+ * 不在这里给弹窗"就地改状态"：售后进度与两个入口开关都由后端算，
+ * 前端自己改一份等于把服务端的判断抄一遍，迟早分叉。
+ */
+async function onAfterSaleSubmitted(): Promise<void> {
+  await execute()
+}
+
+/**
  * 删除订单。
  *
  * 与取消、确认收货同一个形状。删除只是把订单从自己的列表里移除，订单数据仍保留在后台，
  * 所以确认文案要说清这一点，避免用户以为交易记录也一起没了。
- */
-async function onRemove(orderSn: string): Promise<void> {
+ */ async function onRemove(orderSn: string): Promise<void> {
   try {
     await ElMessageBox.confirm(
       '删除后这笔订单不再出现在你的订单列表里，订单数据仍会保留在后台。确定删除吗？',
