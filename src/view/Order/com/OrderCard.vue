@@ -51,6 +51,8 @@
         <b>¥{{ order.payAmount.toFixed(2) }}</b>
       </span>
 
+      <span v-if="giftText" class="card__gift">{{ giftText }}</span>
+
       <!--
         待付款有取消与支付，已付款可以申请整单退款，已发货有确认收货，
         已完成可以评价（这一单的商品都评过时改成"查看评论"）与退货，已完成与已取消可以删除。
@@ -167,6 +169,20 @@ const allCommented = computed(
  * 文案（类型与状态）都由后端填好，前端只负责拼起来；「退货中」把退货地址带上，
  * 因为那正是会员下一步要照着寄回的地址。
  */
+/**
+ * 赠送量文案：数值取订单上下单时算定的快照（付款成功时按它入账）。
+ *
+ * 已取消的订单不会赠送，所以那一档不显示；其余按"还没付款"与"已付款"分成两种说法。
+ */
+const giftText = computed(() => {
+  const integration = props.order.integration ?? 0
+  const growth = props.order.growth ?? 0
+  if (integration <= 0 && growth <= 0) return ''
+  if (props.order.status === 4) return ''
+  const prefix = props.order.status === 0 ? '付款后可得' : '已获得'
+  return `${prefix} ${integration} 积分、${growth} 成长值`
+})
+
 const afterSaleText = computed(() => {
   const list = props.order.afterSaleList ?? []
   if (list.length === 0) {

@@ -47,6 +47,8 @@
 
           <p v-if="promotionText" class="item__promotion">{{ promotionText }}</p>
 
+          <p v-if="giftText" class="item__gift">{{ giftText }}</p>
+
           <p v-if="seckillHint" class="item__seckill-hint">{{ seckillHint }}</p>
 
           <dl class="item__meta">
@@ -274,6 +276,18 @@ function discountText(discount: number | null) {
   return discount == null ? '' : `${(discount * 10).toFixed(1)} 折`
 }
 
+/**
+ * 赠送量文案：按 1 件试算，数值由后端算好下发（秒杀进行中基数取秒杀价）。
+ *
+ * 只报"每件"，不按当前选择的数量乘 —— 取整不是线性的，前端乘出来的数会与结算页差几分。
+ */
+const giftText = computed(() => {
+  const integration = detail.value?.unitGiftIntegration ?? 0
+  const growth = detail.value?.unitGiftGrowth ?? 0
+  if (integration <= 0 && growth <= 0) return ''
+  return `每件预计可得 ${integration} 积分、${growth} 成长值`
+})
+
 const phase = computed(() =>
   seckill.value ? seckillPhase(seckill.value.startTime, seckill.value.endTime, now.value) : 'ended',
 )
@@ -480,6 +494,13 @@ async function buyNow(): Promise<void> {
   margin: 0;
   font-size: 13px;
   color: var(--mall-primary);
+}
+
+/* 赠送量：一行提示，不与价格抢注意力 */
+.item__gift {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mall-text-secondary);
 }
 
 .item__stock {

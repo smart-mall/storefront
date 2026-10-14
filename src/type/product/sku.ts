@@ -103,6 +103,15 @@ export interface SkuDetail {
   seckillSkuVo: SeckillSku | null
   /** 商品促销规则（满减与阶梯价），两段都没配时为 null */
   promotion: SkuPromotion | null
+  /**
+   * 按 1 件试算的赠送购物积分，由后端算好下发。
+   *
+   * ⚠️ 只用于显示"每件预计可得"。本单的准确数额取结算页的 `giftIntegration` ——
+   *    按件数相乘后取整不是线性的（19.9 元一件与两件取整后不成倍数），前端自己乘会差几分。
+   */
+  unitGiftIntegration: number
+  /** 按 1 件试算的赠送成长值，口径同上 */
+  unitGiftGrowth: number
 }
 
 /**

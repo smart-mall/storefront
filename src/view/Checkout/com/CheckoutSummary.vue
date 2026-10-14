@@ -46,6 +46,8 @@
         </div>
       </dl>
 
+      <p v-if="giftText" class="summary__gift">{{ giftText }}</p>
+
       <el-button
         type="primary"
         size="large"
@@ -60,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ElButton } from 'element-plus'
 import type { PayType } from '@/type'
 
@@ -67,11 +70,15 @@ import type { PayType } from '@/type'
  * 结算页底部汇总条。纯展示 + 上抛事件：
  * 金额全部来自后端（商品总额、运费、促销、券与积分的抵扣额），这里只负责显示和在提交时原样回传给页面。
  */
-defineProps<{
+const props = defineProps<{
   totalAmount: number
   freightAmount: number
   /** 商品促销减免额；没命中满减或阶梯价时为 0，这时整行不显示 */
   promotionAmount: number
+  /** 本单可得的赠送积分；与成长值都为 0 时这一行不显示 */
+  giftIntegration: number
+  /** 本单可得的赠送成长值 */
+  giftGrowth: number
   /** 券的抵扣额；没用券时为 0，这时整行不显示 */
   couponAmount: number
   /** 积分抵扣额；没用积分时为 0，这时整行不显示 */
@@ -90,6 +97,15 @@ const emit = defineEmits<{
   'update:payType': [value: PayType]
   submit: []
 }>()
+
+/**
+ * 赠送量文案：数值由后端按同一份算法算好，前端不做"每件可得 × 件数"的推算 ——
+ * 按件数相乘后取整不是线性的，乘出来的数会与付款后到账的数差几分。
+ */
+const giftText = computed(() => {
+  if (props.giftIntegration <= 0 && props.giftGrowth <= 0) return ''
+  return `本单可得 ${props.giftIntegration} 积分、${props.giftGrowth} 成长值`
+})
 
 /**
  * 用普通按钮而不是 el-radio：Element Plus 2.6 起 radio 的绑定属性从 `label` 换成了
@@ -190,6 +206,13 @@ const PAY_OPTIONS: { value: PayType; label: string }[] = [
 /* 优惠是减项，用主色区分，与"应付"同一个色系但小一号 */
 .summary__discount {
   color: var(--mall-primary);
+}
+
+/* 赠送量不是金额，用弱色，避免和应付抢注意力 */
+.summary__gift {
+  margin: 0;
+  font-size: 13px;
+  color: var(--mall-text-secondary);
 }
 
 .summary__line--total {

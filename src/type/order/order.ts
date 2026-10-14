@@ -71,6 +71,14 @@ export interface Order {
   /** 支付方式：1 支付宝 / 2 微信；未支付时为 null */
   payType: number | null
   paymentTime: string | null
+  /**
+   * 本单可得的赠送积分，下单时算定的快照；付款成功时按它入账。
+   *
+   * ⚠️ 已取消的订单不会赠送，这个数只表示"如果付了能得多少"。
+   */
+  integration: number | null
+  /** 本单可得的赠送成长值，口径同上 */
+  growth: number | null
 
   receiverName: string
   receiverPhone: string

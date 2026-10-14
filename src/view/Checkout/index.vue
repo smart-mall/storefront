@@ -62,6 +62,8 @@
         :total-amount="data.totalAmount"
         :freight-amount="freightAmount"
         :promotion-amount="promotionAmount"
+        :gift-integration="giftIntegration"
+        :gift-growth="giftGrowth"
         :coupon-amount="couponAmount"
         :integration-amount="integrationAmount"
         :pay-amount="payAmount"
@@ -220,6 +222,12 @@ const freightAmount = computed(
 const promotionAmount = computed(
   () => fareResult.value?.promotionAmount ?? data.value?.promotionAmount ?? 0,
 )
+
+/** 本单可得的赠送积分与成长值，由后端按同一份算法算好，前端只显示 */
+const giftIntegration = computed(
+  () => fareResult.value?.giftIntegration ?? data.value?.giftIntegration ?? 0,
+)
+const giftGrowth = computed(() => fareResult.value?.giftGrowth ?? data.value?.giftGrowth ?? 0)
 
 /** 应付总额。提交时回传的就是它，只取后端给的值 */
 const payAmount = computed(() => fareResult.value?.payAmount ?? data.value?.payAmount ?? 0)

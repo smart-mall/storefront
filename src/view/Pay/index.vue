@@ -13,6 +13,7 @@
         <h1 class="pay__headline">{{ headline }}</h1>
         <p class="pay__sn">订单号：{{ order.orderSn }}</p>
         <p class="pay__amount">¥{{ order.payAmount.toFixed(2) }}</p>
+        <p v-if="giftText" class="pay__gift">{{ giftText }}</p>
         <p class="pay__meta">收货人：{{ order.receiverName }} {{ order.receiverPhone }}</p>
         <p class="pay__meta">{{ address }}</p>
       </section>
@@ -111,6 +112,18 @@ const headline = computed(() => {
     return '订单已支付'
   }
   return `订单状态：${order.value?.statusText ?? ''}`
+})
+
+/**
+ * 赠送量文案：数值取订单上下单时算定的快照，付款成功时 member 侧按它入账。
+ *
+ * 这一页只处理待付款的单，所以说法固定是"付款后可得"。
+ */
+const giftText = computed(() => {
+  const integration = order.value?.integration ?? 0
+  const growth = order.value?.growth ?? 0
+  if (integration <= 0 && growth <= 0) return ''
+  return `付款后可得 ${integration} 积分、${growth} 成长值`
 })
 
 const address = computed(() => {

@@ -111,6 +111,14 @@ export interface OrderConfirm {
    *    没用积分时为空数组。
    */
   integrationItems: IntegrationItem[]
+  /**
+   * 本单可得的赠送积分与成长值，由后端按同一份算法算好（与下单入账同源），前端只显示。
+   *
+   * ⚠️ 不要拿商品详情页的"每件可得"乘件数来算：按件数相乘后取整不是线性的，会差几分。
+   */
+  giftIntegration: number
+  /** 本单可得的赠送成长值，口径同上 */
+  giftGrowth: number
   /** 商品总件数 */
   count: number
 }
@@ -210,4 +218,8 @@ export interface FareResult {
   couponItems: CouponItem[]
   /** 每个商品的积分抵扣明细；没用积分时为空数组 */
   integrationItems: IntegrationItem[]
+  /** 本单可得的赠送积分，与确认页同一份口径 */
+  giftIntegration: number
+  /** 本单可得的赠送成长值 */
+  giftGrowth: number
 }
