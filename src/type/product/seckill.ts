@@ -5,9 +5,7 @@
  * （`SkuDetail.seckillSkuVo`），不需要单独请求。
  */
 export interface SeckillSku {
-  /** 秒杀活动 id */
-  promotionId: number
-  /** 活动场次 id */
+  /** 秒杀场次 id */
   promotionSessionId: number
   skuId: number
   /** 秒杀价，展示时要和原价对比出折扣 */
