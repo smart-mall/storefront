@@ -8,9 +8,16 @@
       <el-button type="primary" @click="execute">重新加载</el-button>
     </EmptyState>
 
-    <EmptyState v-else-if="!page || page.rows.length === 0" description="还没有订单">
-      <el-button type="primary" @click="router.push({ name: 'home' })">去逛逛</el-button>
-    </EmptyState>
+    <!-- 列表为空。等刚抢的那一单时先给骨架：这一刻说"还没有订单"是误报，用户会以为又没抢上。
+         条件保持 `!page || ...` 原样，后面的 v-else 才能靠它把 page 收窄成非空 -->
+    <template v-else-if="!page || page.rows.length === 0">
+      <div v-if="waitingExpected" class="orders__skeleton">
+        <el-skeleton :rows="6" animated />
+      </div>
+      <EmptyState v-else description="还没有订单">
+        <el-button type="primary" @click="router.push({ name: 'home' })">去逛逛</el-button>
+      </EmptyState>
+    </template>
 
     <template v-else>
       <OrderCard
@@ -53,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElButton, ElMessage, ElMessageBox, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
@@ -89,6 +96,9 @@ const pageNum = computed<number>(() => {
 const pageSize = ref(20)
 const busy = ref(false)
 
+/** 是否正在等刚抢到的那一单出现。等单期间列表为空不算"没有订单"，见 showEmpty */
+const waitingExpected = ref(false)
+
 /** 评价弹窗：开着的时候记住是哪张订单 */
 const commentVisible = ref(false)
 const commentOrder = ref<Order | null>(null)
@@ -120,6 +130,74 @@ watch(pageSize, () => {
 })
 
 watch([pageNum, pageSize], () => void execute(), { immediate: true })
+
+/**
+ * 刚抢完秒杀带过来的订单号（`?expect=<orderSn>`）。
+ *
+ * 秒杀单不是同步建的：抢购接口把消息投进 MQ 就返回订单号，真正落库由 order 服务异步做。
+ * 所以跳过来立刻拉列表**必然**看不到这一单，这不是请求没发，是发早了。
+ * 这个参数就是"它还没出现，接着找"的标记，没有它时本页行为完全不变。
+ */
+const expectedOrderSn = computed<string | null>(() => {
+  const raw = route.query.expect
+  const text = Array.isArray(raw) ? raw[0] : raw
+  return text ? String(text) : null
+})
+
+/** 轮询间隔与上限。实测抢购返回 → 落库约 250ms，10 秒是兜底而不是预期耗时 */
+const EXPECT_POLL_INTERVAL = 400
+const EXPECT_POLL_TIMEOUT = 10_000
+
+let expectTimer: ReturnType<typeof setInterval> | null = null
+
+function stopExpectPoll(): void {
+  if (expectTimer !== null) {
+    clearInterval(expectTimer)
+    expectTimer = null
+  }
+  waitingExpected.value = false
+}
+
+/** 摘掉标记：留着它，之后每次刷新这个 URL 都会再白轮询一轮 */
+function dropExpectParam(): void {
+  const { expect: _expect, ...rest } = route.query
+  void router.replace({ query: rest })
+}
+
+/**
+ * 轮询到那一单出现为止。
+ *
+ * 三种收工方式：命中、超时、离开页面。前两种都要摘掉 URL 上的标记；
+ * 离开页面只清定时器、不动 URL —— 用户前进后退回来时还得接着找。
+ */
+function pollExpectedOrder(): void {
+  stopExpectPoll()
+  const orderSn = expectedOrderSn.value
+  if (!orderSn) {
+    return
+  }
+
+  const deadline = Date.now() + EXPECT_POLL_TIMEOUT
+  waitingExpected.value = true
+  expectTimer = setInterval(() => {
+    if (page.value?.rows.some((row) => row.orderSn === orderSn)) {
+      stopExpectPoll()
+      dropExpectParam()
+      return
+    }
+    if (Date.now() > deadline) {
+      stopExpectPoll()
+      dropExpectParam()
+      ElMessage.warning('订单还在生成中，稍后再看看')
+      return
+    }
+    void execute()
+  }, EXPECT_POLL_INTERVAL)
+}
+
+watch(expectedOrderSn, pollExpectedOrder, { immediate: true })
+
+onUnmounted(stopExpectPoll)
 
 function onPageChange(value: number): void {
   void router.replace({ query: { ...route.query, pageNum: String(value) } })

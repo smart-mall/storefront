@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElButton, ElSkeleton } from 'element-plus'
 import EmptyState from '@/components/EmptyState/index.vue'
@@ -60,6 +60,9 @@ const items = computed(() => data.value ?? [])
 // 一个定时器供整页所有卡片共用，由 prop 往下传
 const now = useNow()
 
+// 进页面就取一次。这里没有可观察的查询条件，所以用 onMounted 而不是 watch(..., { immediate: true })
+onMounted(() => void execute())
+
 // 同一场次里 skuId 唯一，但跨场次可能重复，所以用 场次id-skuId 做 key
 function keyOf(item: CurrentSeckill): string {
   return `${item.promotionSessionId}-${item.skuId}`
@@ -69,11 +72,11 @@ function keyOf(item: CurrentSeckill): string {
  * 抢购成功后的去向。
  *
  * ⚠️ 这里**不能**跳 `/pay/{orderSn}`：订单号是后端发 MQ 前生成的，此刻订单还没落库，
- *    支付页会查不到订单。跳"我的订单"让用户自己看到订单出现后再去支付。
- *    要做成自动跳支付得先轮询订单列表，这轮没做。
+ *    支付页会查不到订单。所以跳"我的订单"，并用 `expect` 把订单号带过去 ——
+ *    订单页会轮询到这一单出现为止，用户不用自己刷新。
  */
-function onSuccess(): void {
-  void router.push({ name: 'order' })
+function onSuccess(orderSn: string): void {
+  void router.push({ name: 'order', query: { expect: orderSn } })
 }
 </script>
 

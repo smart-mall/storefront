@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import SeckillCard from '@/components/SeckillCard/index.vue'
 import { fetchCurrentSeckill } from '@/api/seckill'
@@ -41,11 +41,14 @@ import { formatCountdown } from '@/tools/time'
 
 const router = useRouter()
 
-const { data } = useAsyncData(fetchCurrentSeckill)
+const { data, execute } = useAsyncData(fetchCurrentSeckill)
 
 const items = computed(() => data.value ?? [])
 
 const now = useNow()
+
+// 首页这一栏没有查询条件，进页面取一次就够
+onMounted(() => void execute())
 
 /**
  * 同一场次里所有商品的结束时间是同一个值，所以这里取第一条算一次就够，
@@ -63,10 +66,10 @@ const clockText = computed(() => {
  * 抢购成功。
  *
  * 和其他两处一样不跳支付页：订单号是发 MQ 前生成的，订单还没落库。
- * 首页这里直接去"我的订单"，用户能在那里看到订单出现后再点支付。
+ * 首页这里直接去"我的订单"，并用 `expect` 把订单号带过去，由订单页轮询到它出现。
  */
-function onSuccess(): void {
-  void router.push({ name: 'order' })
+function onSuccess(orderSn: string): void {
+  void router.push({ name: 'order', query: { expect: orderSn } })
 }
 </script>
 
