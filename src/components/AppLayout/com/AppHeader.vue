@@ -1,7 +1,10 @@
 <template>
   <header class="header">
     <div class="header__inner">
-      <RouterLink class="header__brand" to="/">谷粒商城</RouterLink>
+      <RouterLink class="header__brand" to="/">
+        <img class="header__brand-logo" :src="logoUrl" alt="" />
+        <span>谷粒商城</span>
+      </RouterLink>
 
       <nav class="header__nav">
         <RouterLink to="/">首页</RouterLink>
@@ -29,6 +32,7 @@ import { RouterLink } from 'vue-router'
 import { ShoppingCart } from '@element-plus/icons-vue'
 import { ElBadge, ElIcon } from 'element-plus'
 import UserMenu from './UserMenu.vue'
+import logoUrl from '@/assets/logo.svg'
 import { useAuthStore } from '@/store/auth'
 import { useCartStore } from '@/store/cart'
 
@@ -70,11 +74,20 @@ const cartBadge = computed(() => (auth.isLoggedIn ? cart.countNum : 0))
 }
 
 .header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 20px;
   font-weight: 600;
   color: var(--mall-text);
   text-decoration: none;
   letter-spacing: 0.5px;
+}
+
+.header__brand-logo {
+  width: 28px;
+  height: 28px;
+  display: block;
 }
 
 .header__nav {

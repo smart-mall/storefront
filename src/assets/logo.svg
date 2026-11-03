@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="前台商城 Logo">
+  <defs>
+    <linearGradient id="frontBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#36D1DC"/>
+      <stop offset="100%" stop-color="#5B86E5"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="16" fill="url(#frontBg)"/>
+
+  <!-- 购物袋 -->
+  <path d="M20 24h24l-2.5 26a4 4 0 0 1-4 3.6H26.5a4 4 0 0 1-4-3.6L20 24z" fill="#ffffff" opacity="0.96"/>
+  <path d="M26 24v-3a6 6 0 0 1 12 0v3" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- 微笑 -->
+  <path d="M28 36c2.5 2.5 5.5 2.5 8 0" fill="none" stroke="#5B86E5" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- 星星点缀 -->
+  <circle cx="45" cy="18" r="3" fill="#FFD166"/>
+</svg>
